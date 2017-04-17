@@ -8,12 +8,12 @@ shopt -s nullglob #prevent null files
 shopt -s globstar # for recursive for loops
 
 
-# declare variables
-inputs=""
-maps=""
-vopts=""
-aopts=""
-filters=""
+# constant options
+video_metadata="-metadata:s:v:0 Title=\"English\" -metadata:s:v:0 language=eng"
+audio_metadata="-metadata:s:a:0 Title=\"English\" -metadata:s:a:0 language=eng"
+sub_metadata="-metadata:s:s:0 Title=\"English\" -metadata:s:s:0 language=eng"
+metadata="-metadata Title=\"\" $video_metadata $audio_metadata $sub_metadata"
+other="-stats"
 
 # If no directory argument is given, put output in subfolder
 if [ "$1" = "" ]; then
@@ -25,16 +25,19 @@ fi
 # ask video codec question
 echo " "
 echo "Which Video codec to use?"
-select opt in "copy" "h264" "h264_fast" "h265_8bit" "h265_8bit_fast" "h265_10bit" "exit"; do
+select opt in "copy" "libx264" "libx264_fast" "nvenc_h264" "h265_8bit" "h265_8bit_fast" "h265_10bit" "exit"; do
 	case $opt in
 	copy )
 		vopts="-c:v copy"
 		break;;
-	h264 )
+	libx264 )
 		vopts="-c:v libx264 -preset veryslow -crf 18"
 		break;;
-	h264_fast )
+	libx264_fast )
 		vopts="-c:v libx264 -preset fast -crf 18"
+		break;;
+	nvenc_h264 )
+		vopts="-c:v h264_nvenc -cq 18 -preset slow"
 		break;;
 	h265_8bit )
 		vopts="-c:v libx265 -preset slow -crf 21 -x265-params profile=main"
@@ -56,18 +59,23 @@ done
 echo " "
 echo "Which audio codec to use?"
 echo "libfdk_aac is better but only available on newer ffmpeg"
-echo "both assume 160kbps stereo, and dts5.1 should be copied"
-echo "this is really just for encoding mp3 and ac3 stereo"
-select opt in "copy" "aac" "libfdk_aac" "exit"; do
+echo "128k for stereo, 384k for 5.1 surround"
+select opt in "copy" "aac_128" "aac_384" "libfdk_aac_128" "libfdk_aac_384" "exit"; do
 	case $opt in
 	copy )
 		aopts="-c:a copy"
 		break;;
-	aac )
-		aopts="-c:a aac -b:a 160k"
+	aac_128 )
+		aopts="-c:a aac -metadata:s:a:1 title=\"English\" -b:a 128k"
 		break;;
-	libfdk_aac )
-		aopts="-c:a libfdk_aac -b:a 160k"
+	aac_384 )
+		aopts="-c:a aac -metadata:s:a:1 title=\"English\" -b:a 384k"
+		break;;
+	libfdk_aac_128 )
+		aopts="-c:a libfdk_aac -b:a 128k"
+		break;;
+	libfdk_aac_384 )
+		aopts="-c:a libfdk_aac -b:a 384k"
 		break;;
 	exit )
 		exit;;
@@ -111,19 +119,27 @@ done
 
 # ask run options
 echo " "
-echo "preview ffmpeg command, do a 1 minute sample, or run everything now?"
-select opt in "preview" "sample" "run_now" "exit"; do
+echo "preview ffmpeg command, do a 1 minute sample, 60 second sample, or run everything now?"
+select opt in "preview" "sample1" "sample60" "sample60_middle" "run_now" "exit"; do
 	case $opt in
 	preview ) 
-		lengthopts=""
+		lopts=""
 		preview="yes"
 		break;;
-	sample )
-		lengthopts="-t 00:01:00.0"
+	sample1 )
+		lopts="-t 00:00:01.0"
+		preview="no"
+		break;;
+	sample60 )
+		lopts="-t 00:01:00.0"
+		preview="no"
+		break;;
+	sample60_middle )
+		lopts="-ss 00:05:00.0 -t 00:01:00.0"
 		preview="no"
 		break;;
 	run_now ) 
-		lengthopts=""
+		lopts=""
 		preview="no"
 		break;;
 	exit )
@@ -140,7 +156,7 @@ do
 	# get new file name with extention stripped
 	fname="${f%.*}"
 	subdir=$(dirname "${f}")
-	outfile="\"$outdir/$fname.mkv\""
+	out="\"$outdir/$fname.mkv\""
 
 	# skip if file is in the output directory
 	if [[ $outdir == $subdir* ]]; then
@@ -149,17 +165,17 @@ do
 	
 	# if an associated sub exists, embed it and ignore subs in video
 	if [ -e "$fname.srt" ]; then # add subs if they exist
-		inputs=" -i \"$f\" -i \"$fname.srt\""
-		subopts="-c:s copy -metadata:s:s:0 language=eng"
-		maps=" -map 0:v -map 0:a -map 1:s"
+		ins=" -i \"$f\" -i \"$fname.srt\""
+		sopts="-c:s srt"
+		maps=" -map 0:v:0 -map 0:a:0 -map 1:s"
 	else
-		inputs=" -i \"$f\""
-		subopts="-c:s copy"
-		maps=""
+		ins=" -i \"$f\""
+		sopts="-c:s copy"
+		maps="-map 0:v:0 -map 0:a:0 -map 0:s:0"
 	fi
 
 	#combine options into ffmpeg string
-	command="ffmpeg $inputs $maps $vopts $lengthopts $filters $aopts $subopts $outfile"
+	command="ffmpeg $ins $maps $vopts $lopts $filters $aopts $sopts $other $metadata $out"
 
 	# off we go!!
 	if [ $preview == "yes" ]; then
