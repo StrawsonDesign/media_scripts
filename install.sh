@@ -6,4 +6,5 @@ if [ "$EUID" -ne 0 ]
 fi
 
 install -m 755 ffmpeg_helper.sh /usr/local/bin/ffmpeg_helper
+install -m 755 extract_subs.sh /usr/local/bin/extract_subs
 echo "DONE!"
