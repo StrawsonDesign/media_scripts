@@ -13,7 +13,7 @@ video_metadata="-metadata:s:v:0 Title=\"English\" -metadata:s:v:0 language=eng"
 audio_metadata="-metadata:s:a:0 Title=\"English\" -metadata:s:a:0 language=eng"
 sub_metadata="-metadata:s:s:0 Title=\"English\" -metadata:s:s:0 language=eng"
 metadata="-metadata Title=\"\" $video_metadata $audio_metadata $sub_metadata"
-other="-stats"
+other="-stats -n"
 
 # If no directory argument is given, put output in subfolder
 if [ "$1" = "" ]; then
@@ -25,16 +25,22 @@ fi
 # ask video codec question
 echo " "
 echo "Which Video codec to use?"
-select opt in "copy" "libx264" "libx264_fast" "nvenc_h264" "h265_8bit" "h265_8bit_fast" "h265_10bit" "exit"; do
+select opt in "copy" "libx264_crf18_fast" "libx264_crf21_fast" "libx264_crf18_slow" "libx264_crf21_slow" "nvenc_h264" "h265_8bit" "h265_8bit_fast" "h265_10bit" "exit"; do
 	case $opt in
 	copy )
 		vopts="-c:v copy"
 		break;;
-	libx264 )
+	libx264_crf18_slow )
 		vopts="-c:v libx264 -preset veryslow -crf 18"
 		break;;
-	libx264_fast )
+	libx264_crf_18_fast )
 		vopts="-c:v libx264 -preset fast -crf 18"
+		break;;
+	libx264_crf21_slow )
+		vopts="-c:v libx264 -preset veryslow -crf 21"
+		break;;
+	libx264_crf_21_fast )
+		vopts="-c:v libx264 -preset fast -crf 21"
 		break;;
 	nvenc_h264 )
 		vopts="-c:v h264_nvenc -cq 18 -preset slow"
