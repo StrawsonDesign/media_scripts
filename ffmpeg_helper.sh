@@ -11,8 +11,10 @@ shopt -s globstar # for recursive for loops
 # constant options
 video_metadata="-metadata:s:v:0 Title=\"Track 1\" -metadata:s:v:0 language=eng"
 audio_metadata="-metadata:s:a:0 Title=\"Track 1\" -metadata:s:a:0 language=eng"
-sub_metadata="-metadata:s:s:0 Title=\"English\" -metadata:s:s:0 language=eng"
-
+# start with map for video, add to it later
+maps="-map 0:v:0"
+using_libx264=false;
+using_external_sub=false;
 
 # other general options
 # -n auto-skips files if completed
@@ -90,25 +92,6 @@ if $using_libx264 ; then
 	done
 fi
 
-# ask audio codec question
-echo " "
-echo "Which audio codec to use?"
-select opt in  "aac_stereo" "aac_5.1" "copy"; do
-	case $opt in
-	copy )
-		aopts="-c:a copy"
-		break;;
-	aac_stereo )
-		aopts="-c:a aac -b:a 160k"
-		break;;
-	aac_5.1 )
-		aopts="-c:a aac -b:a 480k"
-		break;;
-	*)
-	echo "invalid option"
-	esac
-done
-
 # ask delinterlacing filter question
 echo " "
 echo "use delinterlacing filter?"
@@ -140,7 +123,75 @@ select opt in "none" "w3fdif" "w3fdif_crop" "bwdif" "bwdif_crop" "hflip"; do
 		esac
 done
 
+# ask audio codec question
+echo " "
+echo "Which audio codec to use?"
+select opt in  "aac_stereo" "aac_5.1" "copy"; do
+	case $opt in
+	copy )
+		aopts="-c:a copy"
+		break;;
+	aac_stereo )
+		aopts="-c:a aac -b:a 160k"
+		break;;
+	aac_5.1 )
+		aopts="-c:a aac -b:a 480k"
+		break;;
+	*)
+	echo "invalid option"
+	esac
+done
 
+# ask audio tracks question
+echo " "
+echo "Which audio tracks to use?"
+select opt in  "first" "all" "first+commentary"; do
+	case $opt in
+	first )
+		maps="$maps -map 0:a:0"
+		break;;
+	all )
+		maps="$maps -map 0:a"
+		audio_metadata=""
+		break;;
+	first+commentary )
+		maps="$maps -map 0:a:1"
+		audio_metadata="$audio_metadata -metadata:s:a:1 Title=\"Commentary\" -metadata:s:a:1 language=eng"
+		break;;
+	*)
+	echo "invalid option"
+	esac
+done
+
+# ask subtitle question
+echo " "
+echo "What to do with subtitles?"
+select opt in  "keep_all" "keep_first" "use_external_srt" "none"; do
+	case $opt in
+	keep_all )
+		maps="$maps -map 0:s"
+		subtitle_metadata=""
+		sopts="-c:s copy"
+		break;;
+	keep_first )
+		maps="$maps -map 0:s:0"
+		sub_metadata="-metadata:s:s:0 Title=\"English\" -metadata:s:s:0 language=eng"
+		sopts="-c:s copy"
+		break;;
+	use_external_srt )
+		maps="$maps -map 1:s"
+		sub_metadata="-metadata:s:s:0 Title=\"English\" -metadata:s:s:0 language=eng"
+		sopts="-c:s copy"
+		using_external_sub=true;
+		break;;
+	none )
+		subtitle_metadata=""
+		sopts=""
+		break;;
+	*)
+	echo "invalid option"
+	esac
+done
 
 
 # ask run options
@@ -178,27 +229,28 @@ do
 	# get new file name with extention stripped
 	fname="${f%.*}"
 	subdir=$(dirname "${f}")
-	out="\"$outdir/$fname.mkv\""
+	out="$outdir/$fname.mkv"
 
 	# skip if file is in the output directory
 	if [[ $outdir == $subdir* ]]; then
 		continue
 	fi
 	
-	# if an associated sub exists, embed it and ignore subs in video
-	if [ -e "$fname.srt" ]; then # add subs if they exist
-		ins=" -i \"$f\" -i \"$fname.srt\""
-		sopts="-c:s srt"
-		maps=" -map 0:v:0 -map 0:a:0 -map 1:s"
-	else
-		ins=" -i \"$f\""
-		sopts="-c:s copy"
-		maps="-map 0:v:0 -map 0:a:0 -map 0:s:0"
+	# skip if file is compelete
+	if [ -f "$out" ]; then
+		echo "skipping: $f"
+		continue
+	fi
+	
+	# if using external subtitles, add to inputs
+	ins=" -i \"$f\""
+	if $using_external_sub; then
+		ins="$ins -i \"$fname.srt\""
 	fi
 
 	#combine options into ffmpeg string
 	metadata="-metadata Title=\"\" $video_metadata $audio_metadata $sub_metadata"
-	command="ffmpeg $ins $maps $vopts $lopts $filters $aopts $sopts $other $metadata $out"
+	command="ffmpeg $ins $maps $vopts $lopts $filters $aopts $sopts $other $metadata \"$out\""
 
 	# off we go!!
 	if $preview ; then
@@ -208,7 +260,13 @@ do
 		echo $command
 	else
 		mkdir -p "$outdir/$subdir"
-		eval $command
+		if eval "$command"; then
+			echo "ffmpeg success"
+		else
+			echo " "
+			echo "ffmpeg failure: $f"
+			exit
+		fi
 	fi
 
 done
