@@ -9,11 +9,14 @@ shopt -s globstar # for recursive for loops
 
 
 # constant options
-video_metadata="-metadata:s:v:0 Title=\"English\" -metadata:s:v:0 language=eng"
-audio_metadata="-metadata:s:a:0 Title=\"English\" -metadata:s:a:0 language=eng"
+video_metadata="-metadata:s:v:0 Title=\"Track 1\" -metadata:s:v:0 language=eng"
+audio_metadata="-metadata:s:a:0 Title=\"Track 1\" -metadata:s:a:0 language=eng"
 sub_metadata="-metadata:s:s:0 Title=\"English\" -metadata:s:s:0 language=eng"
 metadata="-metadata Title=\"\" $video_metadata $audio_metadata $sub_metadata"
-other="-stats -n"
+
+# other general options
+# -n auto-skips files if completed
+other="-n"
 
 # If no directory argument is given, put output in subfolder
 if [ "$1" = "" ]; then
@@ -25,21 +28,21 @@ fi
 # ask video codec question
 echo " "
 echo "Which Video codec to use?"
-select opt in "copy" "libx264_crf18_fast" "libx264_crf21_fast" "libx264_crf18_slow" "libx264_crf21_slow" "nvenc_h264" "h265_8bit" "h265_8bit_fast" "h265_10bit" "exit"; do
+select opt in "libx264_good_slow" "libx264_good_fast" "libx264_better_fast" "libx264_better_slow"  "nvenc_h264" "h265_8bit" "h265_8bit_fast" "h265_10bit" "copy"; do
 	case $opt in
 	copy )
 		vopts="-c:v copy"
 		break;;
-	libx264_crf18_slow )
-		vopts="-c:v libx264 -preset veryslow -crf 18"
+	libx264_better_slow )
+		vopts="-c:v libx264 -preset slow -crf 18"
 		break;;
-	libx264_crf_18_fast )
+	libx264_better_fast )
 		vopts="-c:v libx264 -preset fast -crf 18"
 		break;;
-	libx264_crf21_slow )
-		vopts="-c:v libx264 -preset veryslow -crf 21"
+	libx264_good_slow )
+		vopts="-c:v libx264 -preset slow -crf 21"
 		break;;
-	libx264_crf_21_fast )
+	libx264_good_fast )
 		vopts="-c:v libx264 -preset fast -crf 21"
 		break;;
 	nvenc_h264 )
@@ -54,8 +57,6 @@ select opt in "copy" "libx264_crf18_fast" "libx264_crf21_fast" "libx264_crf18_sl
 	h265_10bit )
 		vopts="-c:v libx265 -preset slow -crf 21 -x265-params profile=main10"
 		break;;
-	exit )
-		exit;;
 	*)
 		echo "invalid option"
 		esac
@@ -66,16 +67,16 @@ echo " "
 echo "Which audio codec to use?"
 echo "libfdk_aac is better but only available on newer ffmpeg"
 echo "128k for stereo, 384k for 5.1 surround"
-select opt in "copy" "aac_128" "aac_384" "libfdk_aac_128" "libfdk_aac_384" "exit"; do
+select opt in  "aac_128" "aac_384" "libfdk_aac_128" "libfdk_aac_384" "copy"; do
 	case $opt in
 	copy )
 		aopts="-c:a copy"
 		break;;
 	aac_128 )
-		aopts="-c:a aac -metadata:s:a:1 title=\"English\" -b:a 128k"
+		aopts="-c:a aac -b:a 128k"
 		break;;
 	aac_384 )
-		aopts="-c:a aac -metadata:s:a:1 title=\"English\" -b:a 384k"
+		aopts="-c:a aac  -b:a 384k"
 		break;;
 	libfdk_aac_128 )
 		aopts="-c:a libfdk_aac -b:a 128k"
@@ -83,8 +84,6 @@ select opt in "copy" "aac_128" "aac_384" "libfdk_aac_128" "libfdk_aac_384" "exit
 	libfdk_aac_384 )
 		aopts="-c:a libfdk_aac -b:a 384k"
 		break;;
-	exit )
-		exit;;
 	*)
 	echo "invalid option"
 	esac
@@ -96,7 +95,7 @@ echo "use delinterlacing filter?"
 echo "bwdif is a better filter but only works on newer ffmpeg"
 echo "cropping takes off 2 pixels from top and bottom which removes"
 echo "some interlacing artifacts from old dvds"
-select opt in "none" "w3fdif" "w3fdif_crop" "bwdif" "bwdif_crop" "hflip" "exit"; do
+select opt in "none" "w3fdif" "w3fdif_crop" "bwdif" "bwdif_crop" "hflip"; do
 	case $opt in
 	none )
 		filters=""
@@ -116,8 +115,6 @@ select opt in "none" "w3fdif" "w3fdif_crop" "bwdif" "bwdif_crop" "hflip" "exit";
 	hflip )
 		filters="-vf \"hflip\""
 		break;;
-	exit )
-		exit;;
 	*)
 		echo "invalid option"
 		esac
@@ -126,7 +123,7 @@ done
 # ask run options
 echo " "
 echo "preview ffmpeg command, do a 1 minute sample, 60 second sample, or run everything now?"
-select opt in "preview" "sample1" "sample60" "sample60_middle" "run_now" "exit"; do
+select opt in "run_now" "preview" "sample1" "sample60" "sample60_middle" "exit"; do
 	case $opt in
 	preview ) 
 		lopts=""
