@@ -166,7 +166,7 @@ done
 # ask subtitle question
 echo " "
 echo "What to do with subtitles?"
-select opt in  "keep_all" "keep_first" "use_external_srt" "none"; do
+select opt in  "keep_first" "use_external_srt" "keep_all" "none"; do
 	case $opt in
 	keep_all )
 		maps="$maps -map 0:s"
