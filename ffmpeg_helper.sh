@@ -73,7 +73,7 @@ done
 if $using_libx264 ; then
 	echo " "
 	echo "which h264 level, 4.1 recommended for most bluray"
-	select opt in "auto" "3.1_dvd" "4.1_1080_30" "4.2_1080_60"; do
+	select opt in "4.1_1080_30" "3.1_dvd" "auto" "4.2_1080_60"; do
 		case $opt in
 		auto )
 			break;;
@@ -145,7 +145,7 @@ done
 # ask audio tracks question
 echo " "
 echo "Which audio tracks to use?"
-select opt in  "first" "all" "first+commentary"; do
+select opt in  "first" "first+commentary" "all"; do
 	case $opt in
 	first )
 		maps="$maps -map 0:a:0"
@@ -155,7 +155,7 @@ select opt in  "first" "all" "first+commentary"; do
 		audio_metadata=""
 		break;;
 	first+commentary )
-		maps="$maps -map 0:a:1"
+		maps="$maps -map 0:a:0 -map 0:a:1"
 		audio_metadata="$audio_metadata -metadata:s:a:1 Title=\"Commentary\" -metadata:s:a:1 language=eng"
 		break;;
 	*)
@@ -210,7 +210,7 @@ select opt in "run_now" "preview" "sample1" "sample60" "sample60_middle" "exit";
 		lopts="-t 00:01:00.0"
 		break;;
 	sample60_middle )
-		lopts="-ss 00:05:00.0 -t 00:01:00.0"
+		lopts="-ss 00:02:00.0 -t 00:01:00.0"
 		break;;
 	run_now ) 
 		lopts=""
