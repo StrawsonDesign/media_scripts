@@ -78,13 +78,13 @@ if $using_libx264 ; then
 		auto )
 			break;;
 		3.1_dvd )
-			vopts="$vopts --profile:v baseline -level 3.1"
+			vopts="$vopts -profile:v baseline -level 3.1"
 			break;;
 		4.1_1080_30 )
-			vopts="$vopts --profile:v high -level 4.1" 
+			vopts="$vopts -profile:v high -level 4.1" 
 			break;;
 		4.2_1080_60 )
-			vopts="$vopts --profile:v high -level 4.2" 
+			vopts="$vopts -profile:v high -level 4.2" 
 			break;;
 		*)
 			echo "invalid option"
