@@ -12,9 +12,14 @@ shopt -s globstar # for recursive for loops
 video_metadata="-metadata:s:v:0 Title=\"Track 1\" -metadata:s:v:0 language=eng"
 audio_metadata="-metadata:s:a:0 Title=\"Track 1\" -metadata:s:a:0 language=eng"
 # start with map for video, add to it later
-maps="-map 0:v:0"
+vmaps="-map 0:v:0"
 using_libx264=false;
 using_external_sub=false;
+auto_subs=false;
+map_all_eng=false;
+audio_metadata=""
+sopts="-c:s copy"
+subtitle_metadata=""
 
 # other general options
 # -n auto-skips files if completed
@@ -31,25 +36,25 @@ fi
 # ask video codec question
 echo " "
 echo "Which Video codec to use?"
-select opt in "libx264_good_slow" "libx264_good_fast" "libx264_better_fast" "libx264_better_slow"  "nvenc_h264" "h265_8bit" "h265_8bit_fast" "h265_10bit" "copy"; do
+select opt in "x264_rf20_slow" "x264_rf18_slow" "x264_rf20_fast" "x264_18_fast" "nvenc_h264" "h265_8bit" "h265_8bit_fast" "h265_10bit" "copy"; do
 	case $opt in
 	copy )
 		vopts="-c:v copy"
 		break;;
-	libx264_better_slow )
+	x264_rf18_slow )
 		vopts="-c:v libx264 -preset slow -crf 18"
 		using_libx264=true;
 		break;;
-	libx264_better_fast )
+	x264_rf18_fast )
 		vopts="-c:v libx264 -preset fast -crf 18"
 		using_libx264=true;
 		break;;
-	libx264_good_slow )
-		vopts="-c:v libx264 -preset slow -crf 21"
+	x264_rf20_slow )
+		vopts="-c:v libx264 -preset slow -crf 20"
 		using_libx264=true;
 		break;;
-	libx264_good_fast )
-		vopts="-c:v libx264 -preset fast -crf 21"
+	x264_rf20_fast )
+		vopts="-c:v libx264 -preset fast -crf 20"
 		using_libx264=true;
 		break;;
 	nvenc_h264 )
@@ -123,81 +128,84 @@ select opt in "none" "w3fdif" "w3fdif_crop" "bwdif" "bwdif_crop" "hflip"; do
 		esac
 done
 
+# ask audio tracks question
+echo " "
+echo "Which audio tracks to use?"
+echo "note, mapping all english audio tracks also maps all english subtitles"
+select opt in  "all_english" "first" "all" "first+commentary" ; do
+	case $opt in
+	all_english)
+		amaps="-map 0:a:m:language:eng"
+		map_all_english=true
+		break;;
+	first )
+		amaps="-map 0:a:0"
+		break;;
+	all )
+		amaps="-map 0:a"
+		break;;
+	first+commentary )
+		amaps="-map 0:a:0 -map 0:a:1"
+		audio_metadata="-metadata:s:a:1 Title=\"English\" -metadata:s:a:1 Title=\"Commentary\" -metadata:s:a language=eng"
+		break;;
+	*)
+	echo "invalid option"
+	esac
+done
+
 # ask audio codec question
 echo " "
 echo "Which audio codec to use?"
 select opt in  "aac_stereo" "aac_5.1" "copy"; do
 	case $opt in
-	copy )
-		aopts="-c:a copy"
-		break;;
 	aac_stereo )
 		aopts="-c:a aac -b:a 160k"
 		break;;
 	aac_5.1 )
 		aopts="-c:a aac -b:a 480k"
 		break;;
-	*)
-	echo "invalid option"
-	esac
-done
-
-# ask audio tracks question
-echo " "
-echo "Which audio tracks to use?"
-select opt in  "first" "first+commentary" "all"; do
-	case $opt in
-	first )
-		maps="$maps -map 0:a:0"
-		break;;
-	all )
-		maps="$maps -map 0:a"
-		audio_metadata=""
-		break;;
-	first+commentary )
-		maps="$maps -map 0:a:0 -map 0:a:1"
-		audio_metadata="$audio_metadata -metadata:s:a:1 Title=\"Commentary\" -metadata:s:a:1 language=eng"
+	copy )
+		aopts="-c:a copy"
 		break;;
 	*)
 	echo "invalid option"
 	esac
 done
 
-# ask subtitle question
-echo " "
-echo "What to do with subtitles?"
-select opt in  "keep_first" "use_external_srt" "keep_all" "none"; do
-	case $opt in
-	keep_all )
-		maps="$maps -map 0:s"
-		subtitle_metadata=""
-		sopts="-c:s copy"
-		break;;
-	keep_first )
-		maps="$maps -map 0:s:0"
-		sub_metadata="-metadata:s:s:0 Title=\"English\" -metadata:s:s:0 language=eng"
-		sopts="-c:s copy"
-		break;;
-	use_external_srt )
-		maps="$maps -map 1:s"
-		sub_metadata="-metadata:s:s:0 Title=\"English\" -metadata:s:s:0 language=eng"
-		sopts="-c:s copy"
-		using_external_sub=true;
-		break;;
-	none )
-		subtitle_metadata=""
-		sopts=""
-		break;;
-	*)
-	echo "invalid option"
-	esac
-done
-
+# ask subtitle question only if english audio maps haven't been set
+# if it was set, english subtitles will be pulled automatically too
+# along with an external srt if it exists
+if ! map_english_subs; then
+	echo " "
+	echo "What to do with subtitles?"
+	select opt in  "auto" "keep_first" "use_external_srt" "keep_all" "none"; do
+		case $opt in
+		auto )
+			auto_subs=true;
+			break;;
+		keep_all )
+			smaps="-map 0:s"
+			break;;
+		keep_first )
+			smaps="-map 0:s:0"
+			# force english language metadata since it is sometimes "unknown"
+			sub_metadata="-metadata:s:s:0 Title=\"English\" -metadata:s:s:0 language=eng"
+			break;;
+		use_external_srt )
+			force_external_sub=true;
+			break;;
+		none )
+			break;;
+		*)
+		echo "invalid option"
+		esac
+	done
+fis
 
 # ask run options
 echo " "
 echo "preview ffmpeg command, do a 1 minute sample, 60 second sample, or run everything now?"
-select opt in "run_now" "preview" "sample1" "sample60" "sample60_middle" "exit"; do
+select opt in "preview" "run_now" "sample1" "sample60" "sample60_middle" "exit"; do
 	case $opt in
 	preview ) 
 		lopts=""
@@ -222,8 +230,9 @@ select opt in "run_now" "preview" "sample1" "sample60" "sample60_middle" "exit";
 		esac
 done
 
-
+################################################################################
 # loop through all input files
+################################################################################
 for f in **/*.mkv **/*.MKV **/*.MP4 **/*.mp4 **/*.avi **/*.AVI
 do
 	# get new file name with extention stripped
@@ -231,25 +240,50 @@ do
 	subdir=$(dirname "${f}")
 	out="$outdir/$fname.mkv"
 
-	# skip if file is in the output directory
+	# arguments that must be reset each time since they may change between files
+	ins=" -i \"$f\""
+
+	# skip if file is in the output directory or already complete
 	if [[ $outdir == ${subdir%/*} ]]; then
 		echo "file in outdir: $f"
 		continue
 	fi
-	
-	# skip if file is compelete
 	if [ -f "$out" ]; then
 		echo "completed: $f"
 		continue
 	fi
-	
-	# if using external subtitles, add to inputs
-	ins=" -i \"$f\""
-	if $using_external_sub; then
-		ins="$ins -i \"$fname.srt\""
+
+	# if subtitle mode is set to auto, do some checking
+	auto_ext_subs_found=false;
+	if $auto_subtitles; then
+		# external subs take priority if they exist
+		if [ -f "$fname.srt" ]; then
+			auto_ext_subs_found=true;
+		else
+			# otherwise map all english subtitles, usually eng, forced, & SDH
+			# dont modify metadata, we want to keep titles since they may state
+			# forced or SDH flags
+			if map_all_english; then
+				smaps=""
+			else
+				smaps=" -map 0:s:m:language:eng\?"
+			fi
+			sub_metadata=""
+		fi
 	fi
 
+	# if using external subtitles, add to inputs
+	if $using_external_sub || $auto_ext_subs_found; then
+		ins="$ins -i \"$fname.srt\""
+		# set title and language since these would be empty otherwise
+		smaps=" -map 1:s"
+		sub_metadata="-metadata:s:s:0 Title=\"English\" -metadata:s:s:0 language=eng"
+	
+	fi
+
+
 	#combine options into ffmpeg string
+	maps="$vmaps $amaps $smaps"
 	metadata="-metadata Title=\"\" $video_metadata $audio_metadata $sub_metadata"
 	command="ffmpeg $ins $maps $vopts $lopts $filters $aopts $sopts $other $metadata \"$out\""
 
@@ -261,11 +295,20 @@ do
 		echo $command
 	else
 		mkdir -p "$outdir/$subdir"
+		echo " "
+		echo "executing:"
+		echo $command
+		echo " "
 		if eval "$command"; then
-			echo "ffmpeg success"
+			echo "ffmpeg success running:"
+			echo $command
+			echo " "
 		else
 			echo " "
 			echo "ffmpeg failure: $f"
+			echo "while trying to execute:"
+			echo $command
+			echo " "
 			exit
 		fi
 	fi
