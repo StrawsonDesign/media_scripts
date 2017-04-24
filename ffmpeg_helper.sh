@@ -232,13 +232,14 @@ do
 	out="$outdir/$fname.mkv"
 
 	# skip if file is in the output directory
-	if [[ $outdir == $subdir* ]]; then
+	if [[ $outdir == ${subdir%/*} ]]; then
+		echo "file in outdir: $f"
 		continue
 	fi
 	
 	# skip if file is compelete
 	if [ -f "$out" ]; then
-		echo "skipping: $f"
+		echo "completed: $f"
 		continue
 	fi
 	
