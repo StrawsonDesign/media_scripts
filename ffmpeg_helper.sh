@@ -132,11 +132,13 @@ done
 echo " "
 echo "Which audio tracks to use?"
 echo "note, mapping all english audio tracks also maps all english subtitles"
+echo "and subtitle mode is forced to auto"
 select opt in  "all_english" "first" "all" "first+commentary" ; do
 	case $opt in
 	all_english)
 		amaps="-map 0:a:m:language:eng"
 		map_all_english=true
+		auto_subs=true
 		break;;
 	first )
 		amaps="-map 0:a:0"
@@ -175,7 +177,7 @@ done
 # ask subtitle question only if english audio maps haven't been set
 # if it was set, english subtitles will be pulled automatically too
 # along with an external srt if it exists
-if ! map_english_subs; then
+if [ map_english_subs == false ]; then
 	echo " "
 	echo "What to do with subtitles?"
 	select opt in  "auto" "keep_first" "use_external_srt" "keep_all" "none"; do
@@ -200,7 +202,8 @@ if ! map_english_subs; then
 		echo "invalid option"
 		esac
 	done
-fis
+fi
+
 
 # ask run options
 echo " "
@@ -258,16 +261,9 @@ do
 	if $auto_subtitles; then
 		# external subs take priority if they exist
 		if [ -f "$fname.srt" ]; then
-			auto_ext_subs_found=true;
+			auto_ext_subs_found=true
 		else
-			# otherwise map all english subtitles, usually eng, forced, & SDH
-			# dont modify metadata, we want to keep titles since they may state
-			# forced or SDH flags
-			if map_all_english; then
-				smaps=""
-			else
-				smaps=" -map 0:s:m:language:eng\?"
-			fi
+			smaps=""
 			sub_metadata=""
 		fi
 	fi
@@ -278,9 +274,7 @@ do
 		# set title and language since these would be empty otherwise
 		smaps=" -map 1:s"
 		sub_metadata="-metadata:s:s:0 Title=\"English\" -metadata:s:s:0 language=eng"
-	
 	fi
-
 
 	#combine options into ffmpeg string
 	maps="$vmaps $amaps $smaps"
