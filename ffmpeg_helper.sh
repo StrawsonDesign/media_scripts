@@ -36,7 +36,7 @@ fi
 # ask video codec question
 echo " "
 echo "Which Video codec to use?"
-select opt in "x264_rf20_slow" "x264_rf18_slow" "x264_rf20_fast" "x264_18_fast" "nvenc_h264" "h265_8bit" "h265_8bit_fast" "h265_10bit" "copy"; do
+select opt in "x264_rf18_slow" "x264_rf20_slow" "x264_rf20_fast" "x264_18_fast" "nvenc_h264" "h265_8bit" "h265_8bit_fast" "h265_10bit" "copy"; do
 	case $opt in
 	copy )
 		vopts="-c:v copy"
@@ -78,17 +78,17 @@ done
 if $using_libx264 ; then
 	echo " "
 	echo "which h264 level, 4.1 recommended for most bluray"
-	select opt in "4.1_1080_30" "3.1_dvd" "auto" "4.2_1080_60"; do
+	select opt in "4.1_1080" "3.1_dvd" "auto" "4.2_1080"; do
 		case $opt in
 		auto )
 			break;;
 		3.1_dvd )
 			vopts="$vopts -profile:v baseline -level 3.1"
 			break;;
-		4.1_1080_30 )
+		4.1_1080 )
 			vopts="$vopts -profile:v high -level 4.1" 
 			break;;
-		4.2_1080_60 )
+		4.2_1080 )
 			vopts="$vopts -profile:v high -level 4.2" 
 			break;;
 		*)
@@ -138,7 +138,6 @@ select opt in  "all_english" "first" "all" "first+commentary" ; do
 	all_english)
 		amaps="-map 0:a:m:language:eng"
 		map_all_english=true
-		auto_subs=true
 		break;;
 	first )
 		amaps="-map 0:a:0"
@@ -158,10 +157,16 @@ done
 # ask audio codec question
 echo " "
 echo "Which audio codec to use?"
-select opt in  "aac_stereo" "aac_5.1" "copy"; do
+select opt in  "aac_stereo" "aac_stereo_downmix" "aac_5.1" "copy"; do
 	case $opt in
 	aac_stereo )
 		aopts="-c:a aac -b:a 160k"
+		break;;
+	aac_stereo_downmix )
+		aopts="-c:a aac -b:a 160k"
+		aopts="$aopts -af \"pan=stereo|FL < 1.0*FL + 0.707*FC + 0.707*BL|FR < 1.0*FR + 0.707*FC + 0.707*BR\""
+		test="testing $aopts"
+		echo "$test"
 		break;;
 	aac_5.1 )
 		aopts="-c:a aac -b:a 480k"
@@ -177,32 +182,30 @@ done
 # ask subtitle question only if english audio maps haven't been set
 # if it was set, english subtitles will be pulled automatically too
 # along with an external srt if it exists
-if [ map_english_subs == false ]; then
-	echo " "
-	echo "What to do with subtitles?"
-	select opt in  "auto" "keep_first" "use_external_srt" "keep_all" "none"; do
-		case $opt in
-		auto )
-			auto_subs=true;
-			break;;
-		keep_all )
-			smaps="-map 0:s"
-			break;;
-		keep_first )
-			smaps="-map 0:s:0"
-			# force english language metadata since it is sometimes "unknown"
-			sub_metadata="-metadata:s:s:0 Title=\"English\" -metadata:s:s:0 language=eng"
-			break;;
-		use_external_srt )
-			force_external_sub=true;
-			break;;
-		none )
-			break;;
-		*)
-		echo "invalid option"
-		esac
-	done
-fi
+echo " "
+echo "What to do with subtitles?"
+select opt in "keep_first" "use_external_srt" "keep_all" "none"; do
+	case $opt in
+	keep_all )
+		smaps="-map 0:s"
+		break;;
+	keep_first )
+		smaps="-map 0:s:0"
+		# force english language metadata since it is sometimes "unknown"
+		sub_metadata="-metadata:s:s:0 Title=\"English\" -metadata:s:s:0 language=eng"
+		break;;
+	use_external_srt )
+		force_external_sub=true;
+		# force english language metadata since it is sometimes "unknown"
+		sub_metadata="-metadata:s:s:0 Title=\"English\" -metadata:s:s:0 language=eng"
+		smaps="-map 1:s"
+		break;;
+	none )
+		break;;
+	*)
+	echo "invalid option"
+	esac
+done
 
 
 # ask run options
@@ -256,24 +259,9 @@ do
 		continue
 	fi
 
-	# if subtitle mode is set to auto, do some checking
-	auto_ext_subs_found=false;
-	if $auto_subtitles; then
-		# external subs take priority if they exist
-		if [ -f "$fname.srt" ]; then
-			auto_ext_subs_found=true
-		else
-			smaps=""
-			sub_metadata=""
-		fi
-	fi
-
 	# if using external subtitles, add to inputs
-	if $using_external_sub || $auto_ext_subs_found; then
+	if $forced_external_subs; then
 		ins="$ins -i \"$fname.srt\""
-		# set title and language since these would be empty otherwise
-		smaps=" -map 1:s"
-		sub_metadata="-metadata:s:s:0 Title=\"English\" -metadata:s:s:0 language=eng"
 	fi
 
 	#combine options into ffmpeg string
@@ -286,22 +274,22 @@ do
 		echo " "
 		echo "preview:"
 		echo " "
-		echo $command
+		echo "$command"
 	else
 		mkdir -p "$outdir/$subdir"
 		echo " "
 		echo "executing:"
-		echo $command
+		echo "$command"
 		echo " "
 		if eval "$command"; then
 			echo "ffmpeg success running:"
-			echo $command
+			echo "$command"
 			echo " "
 		else
 			echo " "
 			echo "ffmpeg failure: $f"
 			echo "while trying to execute:"
-			echo $command
+			echo "$command"
 			echo " "
 			exit
 		fi
