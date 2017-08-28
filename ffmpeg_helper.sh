@@ -4,7 +4,7 @@
 ## processes all files in a directory recursively
 
 #IFS=$'\n'
-shopt -s nullglob #prevent null files
+shopt -s nullglob # prevent null files
 shopt -s globstar # for recursive for loops
 
 
@@ -20,23 +20,52 @@ map_all_eng=false;
 audio_metadata=""
 sopts="-c:s copy"
 subtitle_metadata=""
+indir=false
+outdir=false
 
 # other general options
 # -n auto-skips files if completed
 other="-n"
 preview=false
 
-# If no directory argument is given, put output in subfolder
-if [ "$1" = "" ]; then
-	outdir="completed"
-else
-	outdir="$1"
+#print helpful usage to screen
+usage() { echo "Usage: ffmpeg_helper -i <in_dir> -o <out_dir>" 1>&2; exit 1; }
+
+# parse arguments
+while getopts ":i:o:" opt; do
+	case "${opt}" in
+	i)
+		indir=$(realpath -L --relative-base . "${OPTARG}")
+		;;
+	o)
+		outdir=$(realpath -L --relative-base . "${OPTARG}")
+		;;
+	*)
+		usage
+		;;
+	esac
+done
+
+# check arguments were given
+if [ $indir == false ]; then
+	echo "missing input directory"
+	usage
 fi
+if [ $outdir == false ]; then
+	echo "missing output directory"
+	usage
+fi
+
+echo "input directory:"
+echo $indir
+echo "output directory:"
+echo $outdir
+
 
 # ask video codec question
 echo " "
 echo "Which Video codec to use?"
-select opt in "x264_rf18_slow" "x264_rf20_slow" "x264_rf20_fast" "x264_18_fast" "nvenc_h264" "h265_8bit" "h265_8bit_fast" "h265_10bit" "copy"; do
+select opt in "x264_rf19_10M" "x264_rf18_slow" "x264_rf20_slow" "x264_rf20_fast" "x264_18_fast" "nvenc_h264" "h265_8bit" "h265_8bit_fast" "h265_10bit" "copy"; do
 	case $opt in
 	copy )
 		vopts="-c:v copy"
@@ -51,6 +80,10 @@ select opt in "x264_rf18_slow" "x264_rf20_slow" "x264_rf20_fast" "x264_18_fast" 
 		break;;
 	x264_rf20_slow )
 		vopts="-c:v libx264 -preset slow -crf 20"
+		using_libx264=true;
+		break;;
+	x264_rf19_10M )
+		vopts="-c:v libx264 -preset slow -crf 19 -maxrate 10M -bufsize 20M"
 		using_libx264=true;
 		break;;
 	x264_rf20_fast )
@@ -133,7 +166,7 @@ echo " "
 echo "Which audio tracks to use?"
 echo "note, mapping all english audio tracks also maps all english subtitles"
 echo "and subtitle mode is forced to auto"
-select opt in  "all_english" "first" "all" "first+commentary" ; do
+select opt in  "first" "all_english" "all" "first+commentary" ; do
 	case $opt in
 	all_english)
 		amaps="-map 0:a:m:language:eng"
@@ -157,7 +190,7 @@ done
 # ask audio codec question
 echo " "
 echo "Which audio codec to use?"
-select opt in  "aac_stereo" "aac_stereo_downmix" "aac_5.1" "copy"; do
+select opt in "aac_stereo_downmix" "aac_stereo" "aac_5.1" "copy"; do
 	case $opt in
 	aac_stereo )
 		aopts="-c:a aac -b:a 160k"
@@ -184,7 +217,7 @@ done
 # along with an external srt if it exists
 echo " "
 echo "What to do with subtitles?"
-select opt in "keep_first" "use_external_srt" "keep_all" "none"; do
+select opt in "use_external_srt" "keep_first" "keep_all" "none"; do
 	case $opt in
 	keep_all )
 		smaps="-map 0:s"
@@ -239,44 +272,64 @@ done
 ################################################################################
 # loop through all input files
 ################################################################################
-for f in **/*.mkv **/*.MKV **/*.MP4 **/*.mp4 **/*.avi **/*.AVI
+SAVEIFS=$IFS
+IFS=$(echo -en "\n\b") #set IFS to fix spaces in file names
+FILES="$(find "$indir" -type f -name '*.mkv')"
+for ffull in $FILES
+#for ffull in $indir/**/*.mkv **/*.MKV **/*.MP4 **/*.mp4 **/*.avi **/*.AVI
 do
-	# get new file name with extention stripped
-	fname="${f%.*}"
-	subdir=$(dirname "${f}")
-	out="$outdir/$fname.mkv"
-
+	#ffull is complete path from root
+	fpath="${ffull%.*}" # strip extension, still includes subdir!
+	fname=$(basename "$fpath") # strip all path to get juts the name
+	subdir="${fpath%$fname}" # to get subdir, start by stripping the name
+	subdir="${subdir#$indir}" # then strip indir to get realtive path
+	indirbase=$(basename "$indir") # final directory of indir to keep in output
+	outdirfull="$outdir/$indirbase$subdir" # directory to make later
+	outfull="$outdir/$indirbase$subdir$fname.mkv" # place in outdir with mkv extension
+	
+	##debugging stuff
+	#echo "paths:"
+	#echo "$indir"
+	#echo "$outdir"
+	#echo "$ffull"
+	#echo "$fpath"
+	#echo "$fname"
+	#echo "$subdir"
+	#echo "$indirbase"
+	#echo "$outdirfull"
+	#echo "$outfull"
+	
 	# arguments that must be reset each time since they may change between files
-	ins=" -i \"$f\""
+	ins=" -i \"$ffull\""
 
-	# skip if file is in the output directory or already complete
-	if [[ $outdir == ${subdir%/*} ]]; then
-		echo "file in outdir: $f"
-		continue
-	fi
-	if [ -f "$out" ]; then
-		echo "completed: $f"
+	# skip if file is already complete
+	if [ -f "$outfull" ]; then
+		echo "completed: $ffull"
 		continue
 	fi
 
 	# if using external subtitles, add to inputs
 	if $forced_external_subs; then
-		ins="$ins -i \"$fname.srt\""
+		ins="$ins -i \"$fpath.srt\""
 	fi
 
 	#combine options into ffmpeg string
 	maps="$vmaps $amaps $smaps"
 	metadata="-metadata Title=\"\" $video_metadata $audio_metadata $sub_metadata"
-	command="ffmpeg $ins $maps $vopts $lopts $filters $aopts $sopts $other $metadata \"$out\""
+	command="ffmpeg $ins $maps $vopts $lopts $filters $aopts $sopts $other $metadata \"$outfull\""
 
 	# off we go!!
 	if $preview ; then
 		echo " "
 		echo "preview:"
 		echo " "
+		echo "would make directory:"
+		echo "$outdirfull"
+		echo "command:"
 		echo "$command"
+		
 	else
-		mkdir -p "$outdir/$subdir"
+		mkdir -p "$outdirfull" # make sure output directory exists
 		echo " "
 		echo "executing:"
 		echo "$command"
@@ -296,7 +349,8 @@ do
 	fi
 
 done
-
+# restore $IFS
+IFS=$SAVEIFS
 
 echo " "
 echo "DONE"
