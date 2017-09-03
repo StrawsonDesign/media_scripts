@@ -234,8 +234,6 @@ if ! [ $container == "srt" ]; then
 		aac_stereo_downmix )
 			aopts="-c:a aac -b:a 160k"
 			aopts="$aopts -af \"pan=stereo|FL < 1.0*FL + 0.707*FC + 0.707*BL|FR < 1.0*FR + 0.707*FC + 0.707*BR\""
-			test="testing $aopts"
-			echo "$test"
 			break;;
 		aac_5.1 )
 			aopts="-c:a aac -b:a 480k"
@@ -280,7 +278,7 @@ fi #end check for non-srt containers
 # ask run options
 echo " "
 echo "preview ffmpeg command, do a 1 minute sample, 60 second sample, or run everything now?"
-select opt in "preview" "run_now" "sample1" "sample60" "sample60_middle" "exit"; do
+select opt in "preview" "run_now" "sample1" "sample60" "sample60_middle" "run_now_no_chapters"; do
 	case $opt in
 	preview ) 
 		lopts=""
@@ -298,8 +296,10 @@ select opt in "preview" "run_now" "sample1" "sample60" "sample60_middle" "exit";
 	run_now ) 
 		lopts=""
 		break;;
-	exit )
-		exit;;
+	run_now_no_chapters ) 
+		lopts=""
+		vmaps="$vmaps -map_chapters -1"
+		break;;
 	*)
 		echo "invalid option"
 		esac
