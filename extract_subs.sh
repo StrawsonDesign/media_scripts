@@ -1,5 +1,6 @@
 #!/bin/bash
 # Extract subtitles from each MKV file in the given directory
+#ffmpeg_helper will do srt, this is for pgs
 
 # If no directory is given, work in local dir
 if [ "$1" = "" ]; then
