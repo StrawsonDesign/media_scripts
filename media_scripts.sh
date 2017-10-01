@@ -10,11 +10,9 @@ shopt -s globstar # for recursive for loops
 
 # start with map for video, add to it later
 using_libx264=false;
-force_external_sub=false;
 autosubs=false;
 map_all_eng=false;
 audio_metadata=""
-subtitle_metadata=""
 indir=false
 outdir=false
 preview=false
@@ -251,7 +249,7 @@ if [ $mode == "video" ]; then
 	echo "What to do with subtitles?"
 	echo "Auto will select external srt if available"
 	echo "otherwise will grab first embedded sub"
-	select opt in "auto" "use_external_srt" "keep_first" "keep_all" "none"; do
+	select opt in "auto" "keep_first" "keep_second" "keep_all" "none"; do
 		case $opt in
 		auto)
 			autosubs=true;
@@ -262,9 +260,8 @@ if [ $mode == "video" ]; then
 		keep_first )
 			smaps="-map 0:s:0"
 			break;;
-		use_external_srt )
-			force_external_sub=true;
-			smaps="-map 1:s"
+		keep_second )
+			smaps="-map 0:s:1"
 			break;;
 		none )
 			break;;
@@ -438,12 +435,8 @@ do
 			continue
 		fi
 
-		# if using external subtitles, add to inputs
-		if [ $force_external_sub == true ]; then
-			ins="$ins -i \"$fpath.srt\""
-
 		# if using autosubs, check if externals exist
-		elif [ $autosubs == true ]; then
+		if [ $autosubs == true ]; then
 			if [ -f "$fpath.srt" ]; then
 				ins="$ins -i \"$fpath.srt\""
 				smaps="-map 1:s"
