@@ -10,6 +10,7 @@ shopt -s globstar # for recursive for loops
 
 # start with map for video, add to it later
 using_libx264=false;
+using_libx265=false;
 autosubs=false;
 map_all_eng=false;
 audio_metadata=""
@@ -95,71 +96,50 @@ if [ $mode == "video" ]; then
 	# ask video codec question
 	echo " "
 	echo "Which Video codec to use?"
-	select opt in "x264_2pass_10M" "x264_2pass_7M" "x264_2pass_3M" "x264_rf18" "x264_rf20" "h265_8bit" "h265_8bit_fast" "h265_10bit" "copy"; do
+	select opt in "x264_2pass_10M" "x264_2pass_7M" "x264_2pass_3M" "x264_rf18" "x264_rf20"  "x265_2pass_25M" "x265_rf21" "copy"; do
 		case $opt in
 		copy )
 			vopts="-c:v copy"
 			break;;
 		x264_2pass_10M )
 			vopts="-c:v libx264 -preset slow -b:v 10000k"
+			profile="-profile:v high -level 4.1" 
 			using_libx264=true;
 			twopass="x264";
 			break;;
 		x264_2pass_7M )
 			vopts="-c:v libx264 -preset slow -b:v 7000k"
+			profile="-profile:v high -level 4.1" 
 			using_libx264=true;
 			twopass="x264";
 			break;;
 		x264_2pass_3M )
 			vopts="-c:v libx264 -preset slow -b:v 3000k"
+			profile="-profile:v baseline -level 3.1"
 			using_libx264=true;
 			twopass="x264";
 			break;;
 		x264_rf18 )
 			vopts="-c:v libx264 -preset slow -crf 18"
+			profile="-profile:v high -level 4.1" 
 			using_libx264=true;
 			break;;
 		x264_rf20 )
 			vopts="-c:v libx264 -preset slow -crf 20"
+			profile="-profile:v high -level 4.1" 
 			using_libx264=true;
 			break;;
-		x264_2pass_25M )
-			vopts="-preset slow -b:v 10000k -x265-params profile=main10"
+		x265_2pass_25M )
+			vopts="-c:v libx264 -preset slow -b:v 25000k -x265-params profile=main10:level=5.0"
 			twopass="x265";
 			break;;
 		x265_rf21 )
-			vopts="-c:v libx265 -preset slow -crf 21 -x265-params profile=main10"
+			vopts="-c:v libx265 -preset slow -x265-params profile=main10:crf=21"
 			break;;
 		*)
 			echo "invalid option"
 			esac
 	done
-
-	# ask video quality question is using libx264
-	if $using_libx264 ; then
-		echo " "
-		echo "which h264 level"
-		select opt in "4.1_1080_30" "auto" "3.1_dvd" "4.2_1080_60" "5.1_4k_30"; do
-			case $opt in
-			auto )
-				break;;
-			3.1_dvd )
-				profile="-profile:v baseline -level 3.1"
-				break;;
-			4.1_1080_30 )
-				profile="-profile:v high -level 4.1" 
-				break;;
-			4.2_1080_60 )
-				profile="-profile:v high -level 4.2" 
-				break;;
-			5.1_4k_30 )
-				profile="-profile:v high -level 5.1" 
-				break;;
-			*)
-				echo "invalid option"
-				esac
-		done
-	fi
 
 	# ask delinterlacing filter question
 	echo " "
@@ -452,7 +432,7 @@ do
 		if [ $twopass == "x264" ]; then
 			command="echo \"pass 1 of 2\" && ffmpeg -y $other $ins $maps $vopts -pass 1 $profile $aopts -f $format /dev/null && echo \"pass 2 of 2\" && ffmpeg -n $other $ins $maps $vopts -pass 2 $profile $lopts $filters $aopts $sopts $metadata \"$outfull\""
 		elif [ $twopass == "x265" ]; then
-			command="echo \"pass 1 of 2\" && ffmpeg -y $other $ins $maps $vopts pass=1 $profile $aopts -f $format /dev/null && echo \"pass 2 of 2\" && ffmpeg -n $other $ins $maps $vopts pass=2 $profile $lopts $filters $aopts $sopts $metadata \"$outfull\""
+			command="echo \"pass 1 of 2\" && ffmpeg -y $other $ins $maps $vopts:pass=1 $profile $aopts -f $format /dev/null && echo \"pass 2 of 2\" && ffmpeg -n $other $ins $maps $vopts:pass=2 $profile $lopts $filters $aopts $sopts $metadata \"$outfull\""
 		else
 			command="ffmpeg -n $other $ins $maps $vopts $profile $lopts $filters $aopts $sopts $metadata \"$outfull\""
 		fi
