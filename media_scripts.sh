@@ -367,16 +367,50 @@ do
 	if [ $mode == "all_subs" ]; then
 	
 		command="mkvextract tracks \"$ffull\""
+
+		# count number of each type of sub
+		numpgs=0
+		numsrt=0
+		numother=0
+		while read subline
+		do
+			if [[ $subline == *"SRT"* ]]; then
+				numsrt=$((numsrt+1))
+			elif  [[ $subline == *"PGS"* ]]; then
+				numpgs=$((numpgs+1))
+			else
+				numother=$((numother+1))
+			fi		
+		done < <(mkvmerge -i "$ffull" | grep 'subtitles' ) # process substitution
+
 		# Find out which tracks contain the subtitles
 		while read subline
 		do
 			# Grep the number of the subtitle track
 			tracknumber=`echo $subline | egrep -o "[0-9]{1,2}" | head -1`
 			# add track to the command
-			command="$command $tracknumber:\"$out_no_ext.$tracknumber\""
+			if [[ $subline == *"SRT"* ]]; then
+				if [[ $numsrt -lt 2 ]]; then
+					command="$command $tracknumber:\"$out_no_ext.srt\""
+				else
+					command="$command $tracknumber:\"$out_no_ext.$tracknumber.srt\""
+				fi
+			elif  [[ $subline == *"PGS"* ]]; then
+				if [[ $numpgs -lt 2 ]]; then
+					command="$command $tracknumber:\"$out_no_ext.pgs\""
+				else
+					command="$command $tracknumber:\"$out_no_ext.$tracknumber.pgs\""
+				fi
+			else
+				if [[ $numsrt -lt 2 ]]; then
+					command="$command $tracknumber:\"$out_no_ext.sub\""
+				else
+					command="$command $tracknumber:\"$out_no_ext.$tracknumber.sub\""
+				fi
+			fi
 		done < <(mkvmerge -i "$ffull" | grep 'subtitles' ) # process substitution
 		
-		# silence mkvextract
+		# finished constructing command by silencing mkvextract
 		command="$command > /dev/null 2>&1"
 		
 		if [ $preview == true ]; then
