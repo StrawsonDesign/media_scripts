@@ -207,14 +207,14 @@ if [ $mode == "video" ]; then
 	select opt in "aac_5.1" "aac_stereo" "aac_stereo_downmix" "copy"; do
 		case $opt in
 		aac_stereo )
-			aopts="-c:a aac -b:a 192k"
+			aopts="-c:a aac -b:a 128k"
 			break;;
 		aac_stereo_downmix )
-			aopts="-c:a aac -b:a 192k"
+			aopts="-c:a aac -b:a 128k"
 			aopts="$aopts -af \"pan=stereo|FL < 1.0*FL + 0.707*FC + 0.707*BL|FR < 1.0*FR + 0.707*FC + 0.707*BR\""
 			break;;
 		aac_5.1 )
-			aopts="-c:a aac -b:a 576k"
+			aopts="-c:a aac -b:a 384k"
 			break;;
 		copy )
 			aopts="-c:a copy"
