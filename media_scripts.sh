@@ -464,7 +464,7 @@ do
 		metadata="-metadata title=\"$fname\" $video_metadata $audio_metadata $sub_metadata"
 		#metadata="$video_metadata $audio_metadata $sub_metadata"
 		if [ $twopass == "x264" ]; then
-			command="echo \"pass 1 of 2\" && ffmpeg -y $other $ins $maps $vopts -pass 1 $profile $aopts -f $format /dev/null && echo \"pass 2 of 2\" && ffmpeg -n $other $ins $maps $vopts -pass 2 $profile $lopts $filters $aopts $sopts $metadata \"$outfull\""
+			command="echo \"pass 1 of 2\" && ffmpeg -y $other $ins $maps $vopts -pass 1 $profile $lopts $filters $aopts $sopts $metadata -f $format /dev/null && echo \"pass 2 of 2\" && ffmpeg -n $other $ins $maps $vopts -pass 2 $profile $lopts $filters $aopts $sopts $metadata \"$outfull\""
 		elif [ $twopass == "x265" ]; then
 			command="echo \"pass 1 of 2\" && ffmpeg -y $other $ins $maps $vopts:pass=1 $profile $aopts -f $format /dev/null && echo \"pass 2 of 2\" && ffmpeg -n $other $ins $maps $vopts:pass=2 $profile $lopts $filters $aopts $sopts $metadata \"$outfull\""
 		else
