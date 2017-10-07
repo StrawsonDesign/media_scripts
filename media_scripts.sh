@@ -27,7 +27,7 @@ sub_metadata="-metadata:s:s:0 Title=\"English\" -metadata:s:s:0 language=eng"
 # -n tells ffmpeg to skip files if completed, not necessary anymore since we 
 # check in the script before executing, but doesn't hurt to keep
 # also silence the initial ffmpeg prints and turn stats back on
-other="-hide_banner -v fatal -stats"
+verbosity="-hide_banner -v fatal -stats"
 
 
 #print helpful usage to screen
@@ -255,7 +255,7 @@ if [ $mode == "video" ]; then
 	# ask run options
 	echo " "
 	echo "preview ffmpeg command, do a 1 minute sample, 60 second sample, or run everything now?"
-	select opt in "preview" "run_now" "sample1" "sample60" "sample60_middle" "run_now_no_chapters"; do
+	select opt in "preview" "run_now" "run_verbose" "sample1" "sample60" "sample60_middle" "run_now_no_chapters"; do
 		case $opt in
 		preview ) 
 			lopts=""
@@ -263,6 +263,10 @@ if [ $mode == "video" ]; then
 			break;;
 		run_now ) 
 			lopts=""
+			break;;
+		run_verbose ) 
+			lopts=""
+			verbosity="-stats"
 			break;;
 		sample1 )
 			lopts="-t 00:00:01.0"
@@ -464,11 +468,11 @@ do
 		metadata="-metadata title=\"$fname\" $video_metadata $audio_metadata $sub_metadata"
 		#metadata="$video_metadata $audio_metadata $sub_metadata"
 		if [ $twopass == "x264" ]; then
-			command="echo \"pass 1 of 2\" && ffmpeg -y $other $ins $maps $vopts -pass 1 $profile $lopts $filters $aopts $sopts $metadata -f $format /dev/null && echo \"pass 2 of 2\" && ffmpeg -n $other $ins $maps $vopts -pass 2 $profile $lopts $filters $aopts $sopts $metadata \"$outfull\""
+			command="echo \"pass 1 of 2\" && ffmpeg -y $verbosity $ins $maps $vopts -pass 1 $profile $lopts $filters $aopts $sopts $metadata -f $format /dev/null && echo \"pass 2 of 2\" && ffmpeg -n $verbosity $ins $maps $vopts -pass 2 $profile $lopts $filters $aopts $sopts $metadata \"$outfull\""
 		elif [ $twopass == "x265" ]; then
-			command="echo \"pass 1 of 2\" && ffmpeg -y $other $ins $maps $vopts:pass=1 $profile $aopts -f $format /dev/null && echo \"pass 2 of 2\" && ffmpeg -n $other $ins $maps $vopts:pass=2 $profile $lopts $filters $aopts $sopts $metadata \"$outfull\""
+			command="echo \"pass 1 of 2\" && ffmpeg -y $verbosity $ins $maps $vopts:pass=1 $profile $aopts -f $format /dev/null && echo \"pass 2 of 2\" && ffmpeg -n $verbosity $ins $maps $vopts:pass=2 $profile $lopts $filters $aopts $sopts $metadata \"$outfull\""
 		else
-			command="ffmpeg -n $other $ins $maps $vopts $profile $lopts $filters $aopts $sopts $metadata \"$outfull\""
+			command="ffmpeg -n $verbosity $ins $maps $vopts $profile $lopts $filters $aopts $sopts $metadata \"$outfull\""
 		fi
 	
 		# off we go!!
