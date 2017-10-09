@@ -130,11 +130,11 @@ if [ $mode == "video" ]; then
 			using_libx264=true;
 			break;;
 		x265_2pass_25M )
-			vopts="-c:v libx264 -preset slow -b:v 25000k -x265-params profile=main10:level=5.0"
+			vopts="-c:v libx264 -preset slow -b:v 25000k -x265-params profile=main10:level=5.0:high-tier=1"
 			twopass="x265";
 			break;;
 		x265_rf21 )
-			vopts="-c:v libx265 -preset slow -x265-params profile=main10:crf=21"
+			vopts="-c:v libx265 -preset slow -x265-params profile=main10:crf=21:high-tier=1"
 			break;;
 		*)
 			echo "invalid option"
