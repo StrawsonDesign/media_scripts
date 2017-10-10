@@ -4,4 +4,4 @@ This is purely for personal use
 
 ffmpeg_helper.sh recursively finds video files starting in the directory from which it is run. It asks the user a series of questions to determine which presets to use. The output files are placed in a subdirectory "./completed" unless an output directory is specified by a command line argument.
 #Usage
-`media_script.sh indir=[input directory] outdir=[ output directory]
+`media_script.sh [input directory] [output directory]`
