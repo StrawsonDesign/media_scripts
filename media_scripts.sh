@@ -31,24 +31,32 @@ verbosity="-hide_banner -v fatal -stats"
 
 
 #print helpful usage to screen
-usage() { echo "Usage: ffmpeg_helper <in_dir> <out_dir>" 1>&2; exit 1; }
+usage() { echo "Usage: media_scripts <in_dir> <out_dir>" 1>&2; exit 1; }
+
+# check arguments
+if [ "$#" -ne 2 ]; then
+    echo "expected two arguments"
+    usage
+fi
 
 # grab input and output directories
 indir=$1
 outdir=$2
 
 # check arguments were given
-if [ $indir == false ]; then
-	echo "missing input directory"
-	usage
+if [ -f $indir ]; then
+	echo "acting on just one file"
+	echo $indir
+	onefile=true
+elif [ -d $indir ]; then
+	echo "acting on input directory:"
+	echo indir
+	onefile=false
+else
+	echo "error, input is neither file nor directory"
+	exit 1
 fi
-if [ $outdir == false ]; then
-	echo "missing output directory"
-	usage
-fi
-
-echo "input directory:"
-echo $indir
+	
 echo "output directory:"
 echo $outdir
 
@@ -305,11 +313,8 @@ else
 fi
 
 
-# see if one file instead of a directory was given
-if [[ -f $indir ]]; then
-	echo "acting on just one file"
-	echo " "
-	onefile=true
+# contruct list of files to operate on 
+if [ $onefile == true ]; then
 	FILES=$indir
 else
 	FILES="$(find "$indir" -type f -iname \*.mkv -o -iname \*.MKV -o -iname \*.mp4 -o -iname \*.MP4 -o -iname \*.AVI -o -iname \*.avi | sort)"
