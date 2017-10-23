@@ -406,15 +406,15 @@ do
 				fi
 			elif  [[ $subline == *"PGS"* ]]; then
 				if [[ $numpgs -lt 2 ]]; then
-					command="$command $tracknumber:\"$out_no_ext.pgs\""
+					command="$command $tracknumber:\"$out_no_ext.sup\""
 				else
-					command="$command $tracknumber:\"$out_no_ext.$tracknumber.pgs\""
+					command="$command $tracknumber:\"$out_no_ext.$tracknumber.sup\""
 				fi
 			else
 				if [[ $numsrt -lt 2 ]]; then
-					command="$command $tracknumber:\"$out_no_ext.sub\""
+					command="$command $tracknumber:\"$out_no_ext.subtitle\""
 				else
-					command="$command $tracknumber:\"$out_no_ext.$tracknumber.sub\""
+					command="$command $tracknumber:\"$out_no_ext.$tracknumber.subtitle\""
 				fi
 			fi
 			
