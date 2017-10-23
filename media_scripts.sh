@@ -65,7 +65,7 @@ echo " "
 echo "what do you want to make?"
 echo "mkv and mp4 options enocde a video with ffmpeg"
 echo "first_sub and all_subs will use mkvextract to extract subtitles in any format"
-select opt in "mkv" "mp4" "first_sub" "all_subs"; do
+select opt in "mkv" "mp4" "first_sub" "second_sub" "all_subs"; do
 	case $opt in
 	mkv ) 
 		container="mkv"
@@ -88,6 +88,10 @@ select opt in "mkv" "mp4" "first_sub" "all_subs"; do
 	first_sub )
 		mode="mkvextract"
 		which_sub="first"
+		break;;
+	second_sub )
+		mode="mkvextract"
+		which_sub="second"
 		break;;
 	all_subs )
 		mode="mkvextract"
@@ -381,20 +385,31 @@ do
 		numpgs=0
 		numsrt=0
 		numother=0
-		while read subline
-		do
-			if [[ $subline == *"SRT"* ]]; then
-				numsrt=$((numsrt+1))
-			elif  [[ $subline == *"PGS"* ]]; then
-				numpgs=$((numpgs+1))
-			else
-				numother=$((numother+1))
-			fi		
-		done < <(mkvmerge -i "$ffull" | grep 'subtitles' ) # process substitution
+		counter=0
+		if [ $which_sub == "all" ]; then
+			while read subline
+			do
+				if [[ $subline == *"SRT"* ]]; then
+					numsrt=$((numsrt+1))
+				elif  [[ $subline == *"PGS"* ]]; then
+					numpgs=$((numpgs+1))
+				else
+					numother=$((numother+1))
+				fi		
+			done < <(mkvmerge -i "$ffull" | grep 'subtitles' ) # process substitution
+		fi
 
 		# Find out which tracks contain the subtitles
 		while read subline
 		do
+			counter=$((counter+1))
+			# if extracting the second sub, skip the first
+			if [ $which_sub == "second" ]; then
+				if [ $counter -eq 1 ]; then
+					continue;
+				fi
+			fi
+			
 			# Grep the number of the subtitle track
 			tracknumber=`echo $subline | egrep -o "[0-9]{1,2}" | head -1`
 			# add track to the command
@@ -418,9 +433,14 @@ do
 				fi
 			fi
 			
+
 			# if only getting the first sub we can stop here
 			if [ $which_sub == "first" ]; then
 				break;
+			elif [ $which_sub == "second" ]; then
+				if [ $counter -eq 2 ]; then
+					break;
+				fi
 			fi
 			
 		done < <(mkvmerge -i "$ffull" | grep 'subtitles' ) # process substitution
