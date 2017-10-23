@@ -74,7 +74,7 @@ select opt in "mkv" "mp4" "srt" "all_subs"; do
 		vmaps="-map 0:v:0"
 		video_metadata="-metadata:s:v:0 Title=\"Track 1\" -metadata:s:v:0 language=eng"
 		audio_metadata="-metadata:s:a:0 Title=\"Track 1\" -metadata:s:a:0 language=eng"
-		mode="video"
+		mode="ffmpeg"
 		break;;
 	mp4 )
 		container="mp4"
@@ -83,24 +83,22 @@ select opt in "mkv" "mp4" "srt" "all_subs"; do
 		vmaps="-map 0:v:0"
 		video_metadata="-metadata:s:v:0 Title=\"Track 1\" -metadata:s:v:0 language=eng"
 		audio_metadata="-metadata:s:a:0 Title=\"Track 1\" -metadata:s:a:0 language=eng"
-		mode="video"
+		mode="ffmpeg"
 		break;;
-	srt )
-		container="srt"
-		sopts="-c:s srt"
-		smaps="-map 0:s:0"
-		force_external_sub=false;
-		mode="srt"
+	first_sub )
+		mode="mkvextract"
+		which_sub="first"
 		break;;
 	all_subs )
-		mode="all_subs"
+		mode="mkvextract"
+		which_sub="all"
 		break;;
 	*)
 		echo "invalid option"
 		esac
 done
 
-if [ $mode == "video" ]; then
+if [ $mode == "ffmpeg" ]; then
 	# ask video codec question
 	echo " "
 	echo "Which Video codec to use?"
@@ -259,7 +257,7 @@ if [ $mode == "video" ]; then
 	done
 fi #end check for non-srt containers
 
-if [ $mode == "video" ]; then
+if [ $mode == "ffmpeg" ]; then
 	# ask run options
 	echo " "
 	echo "preview ffmpeg command, do a 1 minute sample, 60 second sample, or run everything now?"
@@ -293,7 +291,8 @@ if [ $mode == "video" ]; then
 			echo "invalid option"
 			esac
 	done
-else
+	
+elif [ $mode == "mkvextract" ]; then
 	# ask run options when extracting just subtitles
 	echo " "
 	echo "preview command, or run now?"
@@ -373,11 +372,12 @@ do
 ################################################################################
 # mkvextract stuff, ffmpeg stuff below
 ################################################################################
-	if [ $mode == "all_subs" ]; then
+	if [ $mode == "mkvextract" ]; then
 	
 		command="mkvextract tracks \"$ffull\""
 
-		# count number of each type of sub
+		# count number of each type of sub so we know if it's necessary
+		# to number the output files
 		numpgs=0
 		numsrt=0
 		numother=0
@@ -417,6 +417,12 @@ do
 					command="$command $tracknumber:\"$out_no_ext.$tracknumber.sub\""
 				fi
 			fi
+			
+			# if only getting the first sub we can stop here
+			if [ $which_sub == "first" ]; then
+				break;
+			fi
+			
 		done < <(mkvmerge -i "$ffull" | grep 'subtitles' ) # process substitution
 		
 		# finished constructing command by silencing mkvextract
@@ -447,7 +453,7 @@ do
 ################################################################################
 # ffmpeg stuff, mkvextract above
 ################################################################################
-	else
+	elif [ $mode == "ffmpeg" ]; then
 		# arguments that must be reset each time since they may change between files
 		ins=" -i \"$ffull\""
 
