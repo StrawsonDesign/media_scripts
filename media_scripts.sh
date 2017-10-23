@@ -63,9 +63,9 @@ echo $outdir
 # ask container options
 echo " "
 echo "what do you want to make?"
-echo "mkv, mp4, and srt options make one output with ffmpeg"
-echo "all_subs will use mkvmerge to extract all subtitles in any format"
-select opt in "mkv" "mp4" "srt" "all_subs"; do
+echo "mkv and mp4 options enocde a video with ffmpeg"
+echo "first_sub and all_subs will use mkvextract to extract subtitles in any format"
+select opt in "mkv" "mp4" "first_sub" "all_subs"; do
 	case $opt in
 	mkv ) 
 		container="mkv"
