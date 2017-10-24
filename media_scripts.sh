@@ -40,8 +40,8 @@ if [ "$#" -ne 2 ]; then
 fi
 
 # grab input and output directories
-indir=$1
-outdir=$2
+indir="$1"
+outdir="$2"
 
 # check arguments were given
 if [ -f $indir ]; then
@@ -214,8 +214,11 @@ if [ $mode == "ffmpeg" ]; then
 	# ask audio codec question
 	echo " "
 	echo "Which audio codec to use?"
-	select opt in "aac_5.1" "aac_stereo" "aac_stereo_downmix" "copy"; do
+	select opt in "ac3_5.1" "aac_5.1" "aac_stereo" "aac_stereo_downmix" "copy"; do
 		case $opt in
+		ac3_5.1 )
+			aopts="-c:a ac3 -b:a 640k -ac 6"
+			break;;
 		aac_stereo )
 			aopts="-c:a aac -b:a 128k"
 			break;;
