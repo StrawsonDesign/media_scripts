@@ -498,8 +498,7 @@ do
 
 		#combine options into ffmpeg string
 		maps="$vmaps $amaps $smaps"
-		metadata="-metadata title=\"$fname\" $video_metadata $audio_metadata $sub_metadata"
-		#metadata="$video_metadata $audio_metadata $sub_metadata"
+		metadata="-metadata title=\"\" $video_metadata $audio_metadata $sub_metadata"
 		if [ $twopass == "x264" ]; then
 			command="echo \"pass 1 of 2\" && ffmpeg -y $verbosity $ins $maps $vopts -pass 1 $profile $lopts $filters $aopts $sopts $metadata -f $format /dev/null && echo \"pass 2 of 2\" && ffmpeg -n $verbosity $ins $maps $vopts -pass 2 $profile $lopts $filters $aopts $sopts $metadata \"$outfull\""
 		elif [ $twopass == "x265" ]; then
