@@ -214,17 +214,13 @@ if [ $mode == "ffmpeg" ]; then
 	# ask audio codec question
 	echo " "
 	echo "Which audio codec to use?"
-	select opt in "ac3_5.1" "aac_5.1" "aac_stereo" "aac_stereo_downmix" "copy"; do
+	select opt in "ac3_5.1" "aac_5.1" "aac_stereo" "copy"; do
 		case $opt in
 		ac3_5.1 )
 			aopts="-c:a ac3 -b:a 640k -ac 6"
 			break;;
 		aac_stereo )
 			aopts="-c:a aac -b:a 128k"
-			break;;
-		aac_stereo_downmix )
-			aopts="-c:a aac -b:a 128k"
-			aopts="$aopts -af \"pan=stereo|FL < 1.0*FL + 0.707*FC + 0.707*BL|FR < 1.0*FR + 0.707*FC + 0.707*BR\""
 			break;;
 		aac_5.1 )
 			aopts="-c:a aac -b:a 384k"
