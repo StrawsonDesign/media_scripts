@@ -44,13 +44,13 @@ indir="$1"
 outdir="$2"
 
 # check arguments were given
-if [ -f $indir ]; then
+if [ -f "$indir" ]; then
 	echo "acting on just one file"
-	echo $indir
+	echo "$indir"
 	onefile=true
-elif [ -d $indir ]; then
+elif [ -d "$indir" ]; then
 	echo "acting on input directory:"
-	echo indir
+	echo "$indir"
 	onefile=false
 else
 	echo "error, input is neither file nor directory"
@@ -318,22 +318,11 @@ elif [ $mode == "mkvextract" ]; then
 fi
 
 
-# contruct list of files to operate on 
-if [ $onefile == true ]; then
-	FILES=$indir
-else
-	FILES="$(find "$indir" -type f -iname \*.mkv -o -iname \*.MKV -o -iname \*.mp4 -o -iname \*.MP4 -o -iname \*.AVI -o -iname \*.avi | sort)"
-fi
 
-#set IFS to fix spaces in file names
-SAVEIFS=$IFS
-IFS=$(echo -en "\n\b")
 
-################################################################################
-# loop through all input files
-################################################################################
-for ffull in $FILES
-do
+
+process () {
+	ffull=$1
 	if [ $onefile == false ]; then
 		# ffull is complete path from root
 		# strip extension, still includes subdir!
@@ -379,7 +368,7 @@ do
 # mkvextract stuff, ffmpeg stuff below
 ################################################################################
 	if [ $mode == "mkvextract" ]; then
-	
+		
 		command="mkvextract tracks \"$ffull\""
 
 		# count number of each type of sub so we know if it's necessary
@@ -535,6 +524,29 @@ do
 			fi
 		fi
 	fi
+}
+
+# contruct list of files to operate on 
+if [ $onefile == true ]; then
+	echo "onefile mode"
+	process "$indir"
+else
+	FILES="$(find "$indir" -type f -iname \*.mkv -o -iname \*.MKV -o -iname \*.mp4 -o -iname \*.MP4 -o -iname \*.AVI -o -iname \*.avi | sort)"
+	echo "$FILES"
+fi
+
+
+
+################################################################################
+# loop through all input files
+################################################################################
+#set IFS to fix spaces in file names
+SAVEIFS=$IFS
+IFS=$(echo -en "\n")
+for ffull in $FILES
+do
+	echo "beginning of loop"
+	process "$ffull"
 done
 # restore $IFS
 IFS=$SAVEIFS
