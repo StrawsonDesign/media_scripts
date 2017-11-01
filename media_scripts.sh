@@ -506,9 +506,9 @@ process () {
 		maps="$vmaps $amaps $smaps"
 		metadata="-metadata title=\"\" $video_metadata $audio_metadata $sub_metadata"
 		if [ $twopass == "x264" ]; then
-			command="echo \"pass 1 of 2\" && ffmpeg -y $verbosity $ins $maps $vopts -pass 1 $profile $lopts $filters $aopts $sopts $metadata -f $format /dev/null && echo \"pass 2 of 2\" && ffmpeg -n $verbosity $ins $maps $vopts -pass 2 $profile $lopts $filters $aopts $sopts $metadata \"$outfull\""
+			command="echo \"pass 1 of 2\" && ffmpeg -y $verbosity $ins $maps $vopts -pass 1 -passlogfile /tmp/ffmpeg2pass $profile $lopts $filters $aopts $sopts $metadata -f $format /dev/null && echo \"pass 2 of 2\" && ffmpeg -n $verbosity $ins $maps $vopts -pass 2 -passlogfile /tmp/ffmpeg2pass $profile $lopts $filters $aopts $sopts $metadata \"$outfull\""
 		elif [ $twopass == "x265" ]; then
-			command="echo \"pass 1 of 2\" && ffmpeg -y $verbosity $ins $maps $vopts:pass=1 $profile $aopts -f $format /dev/null && echo \"pass 2 of 2\" && ffmpeg -n $verbosity $ins $maps $vopts:pass=2 $profile $lopts $filters $aopts $sopts $metadata \"$outfull\""
+			command="echo \"pass 1 of 2\" && ffmpeg -y $verbosity $ins $maps $vopts:pass=1 -passlogfile /tmp/ffmpeg2pass $profile $aopts -f $format /dev/null && echo \"pass 2 of 2\" && ffmpeg -n $verbosity $ins $maps $vopts:pass=2 -passlogfile /tmp/ffmpeg2pass $profile $lopts $filters $aopts $sopts $metadata \"$outfull\""
 		else
 			command="ffmpeg -n $verbosity $ins $maps $vopts $profile $lopts $filters $aopts $sopts $metadata \"$outfull\""
 		fi
