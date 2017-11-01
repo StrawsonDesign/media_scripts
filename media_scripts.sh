@@ -487,9 +487,8 @@ process () {
 
 		# skip if file is already complete
 		if [ -f "$outfull" ]; then
-			echo "completed: $ffull"
 			echo "already exists: $outfull"
-			continue
+			return
 		fi
 
 		# if using autosubs, check if externals exist
