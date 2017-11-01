@@ -24,7 +24,7 @@ mode=""
 sub_metadata="-metadata:s:s:0 Title=\"English\" -metadata:s:s:0 language=eng"
 
 # other general options
-# -n tells ffmpeg to skip files if completed, not necessary anymore since we 
+# -n tells ffmpeg to skip files if completed, not necessary anymore since we
 # check in the script before executing, but doesn't hurt to keep
 # also silence the initial ffmpeg prints and turn stats back on
 verbosity="-hide_banner -v fatal -stats"
@@ -56,9 +56,14 @@ else
 	echo "error, input is neither file nor directory"
 	exit 1
 fi
-	
-echo "output directory:"
-echo $outdir
+
+if [ $outdir == "." ]; then
+	outdir=""
+	echo "writing output files to current working directory"
+else
+	echo "output directory:"
+	echo $outdir
+fi
 
 # ask container options
 echo " "
@@ -67,7 +72,7 @@ echo "mkv and mp4 options enocde a video with ffmpeg"
 echo "first_sub and all_subs will use mkvextract to extract subtitles in any format"
 select opt in "mkv" "mp4" "first_sub" "second_sub" "all_subs"; do
 	case $opt in
-	mkv ) 
+	mkv )
 		container="mkv"
 		format="matroska"
 		sopts="-c:s copy"
@@ -113,13 +118,13 @@ if [ $mode == "ffmpeg" ]; then
 			break;;
 		x264_2pass_10M )
 			vopts="-c:v libx264 -preset slow -b:v 10000k"
-			profile="-profile:v high -level 4.1" 
+			profile="-profile:v high -level 4.1"
 			using_libx264=true;
 			twopass="x264";
 			break;;
 		x264_2pass_7M )
 			vopts="-c:v libx264 -preset slow -b:v 7000k"
-			profile="-profile:v high -level 4.1" 
+			profile="-profile:v high -level 4.1"
 			using_libx264=true;
 			twopass="x264";
 			break;;
@@ -131,12 +136,12 @@ if [ $mode == "ffmpeg" ]; then
 			break;;
 		x264_rf18 )
 			vopts="-c:v libx264 -preset slow -crf 18"
-			profile="-profile:v high -level 4.1" 
+			profile="-profile:v high -level 4.1"
 			using_libx264=true;
 			break;;
 		x264_rf20 )
 			vopts="-c:v libx264 -preset slow -crf 20"
-			profile="-profile:v high -level 4.1" 
+			profile="-profile:v high -level 4.1"
 			using_libx264=true;
 			break;;
 		x265_2pass_25M )
@@ -269,14 +274,14 @@ if [ $mode == "ffmpeg" ]; then
 	echo "preview ffmpeg command, do a 1 minute sample, 60 second sample, or run everything now?"
 	select opt in "preview" "run_now" "run_verbose" "sample1" "sample60" "sample60_middle" "run_now_no_chapters"; do
 		case $opt in
-		preview ) 
+		preview )
 			lopts=""
 			preview=true
 			break;;
-		run_now ) 
+		run_now )
 			lopts=""
 			break;;
-		run_verbose ) 
+		run_verbose )
 			lopts=""
 			verbosity="-stats"
 			break;;
@@ -289,7 +294,7 @@ if [ $mode == "ffmpeg" ]; then
 		sample60_middle )
 			lopts="-ss 00:02:00.0 -t 00:01:00.0"
 			break;;
-		run_now_no_chapters ) 
+		run_now_no_chapters )
 			lopts=""
 			vmaps="$vmaps -map_chapters -1"
 			break;;
@@ -297,18 +302,18 @@ if [ $mode == "ffmpeg" ]; then
 			echo "invalid option"
 			esac
 	done
-	
+
 elif [ $mode == "mkvextract" ]; then
 	# ask run options when extracting just subtitles
 	echo " "
 	echo "preview command, or run now?"
 	select opt in "preview" "run_now"; do
 		case $opt in
-		preview ) 
+		preview )
 			lopts=""
 			preview=true
 			break;;
-		run_now ) 
+		run_now )
 			lopts=""
 			break;;
 		*)
@@ -320,38 +325,41 @@ fi
 
 
 
-
+################################################################################
+# function for processing one file
+# first argument is the file name
+################################################################################
 process () {
 	ffull=$1
 	if [ $onefile == false ]; then
 		# ffull is complete path from root
 		# strip extension, still includes subdir!
-		fpath="${ffull%.*}" 
+		fpath="${ffull%.*}"
 		# strip all path to get juts the name
-		fname=$(basename "$fpath") 
+		fname=$(basename "$fpath")
 		# to get subdir, start by stripping the name
 		subdir="${fpath%$fname}"
 		# then strip indir to get realtive path
-		subdir="${subdir#$indir}" 
+		subdir="${subdir#$indir}"
 		# final directory of indir to keep in output
-		indirbase=$(basename "$indir") 
+		indirbase=$(basename "$indir")
 		# directory to make later
-		outdirfull="$outdir$indirbase/$subdir" 
+		outdirfull="$outdir$indirbase/$subdir"
 		# place in outdir with mkv extension
 		out_no_ext="$outdirfull$fname"
-		outfull="$out_no_ext.$container" 
+		outfull="$out_no_ext.$container"
 	else
 		# strip extension, still includes subdir
 		fpath="${ffull%.*}"
 		# strip all path to get juts the name
-		fname=$(basename "$fpath") 
+		fname=$(basename "$fpath")
 		# directory to make later
-		outdirfull="$outdir" 
+		outdirfull="$outdir"
 		out_no_ext="$outdir$fname"
 		# place in outdir with mkv extension
 		outfull="$out_no_ext.$container"
 	fi
-	
+
 	##debugging stuff
 	#echo "paths:"
 	#echo "$indir"
@@ -363,18 +371,19 @@ process () {
 	#echo "$indirbase"
 	#echo "$outdirfull"
 	#echo "$outfull"
-	
+
 ################################################################################
 # mkvextract stuff, ffmpeg stuff below
 ################################################################################
 	if [ $mode == "mkvextract" ]; then
-		
+
 		command="mkvextract tracks \"$ffull\""
 
 		# count number of each type of sub so we know if it's necessary
 		# to number the output files
 		numpgs=0
 		numsrt=0
+		numvob=0
 		numother=0
 		counter=0
 		if [ $which_sub == "all" ]; then
@@ -384,9 +393,11 @@ process () {
 					numsrt=$((numsrt+1))
 				elif  [[ $subline == *"PGS"* ]]; then
 					numpgs=$((numpgs+1))
+				elif  [[ $subline == *"VobSub"* ]]; then
+					numvob=$((numvob+1))
 				else
 					numother=$((numother+1))
-				fi		
+				fi
 			done < <(mkvmerge -i "$ffull" | grep 'subtitles' ) # process substitution
 		fi
 
@@ -400,7 +411,7 @@ process () {
 					continue;
 				fi
 			fi
-			
+
 			# Grep the number of the subtitle track
 			tracknumber=`echo $subline | egrep -o "[0-9]{1,2}" | head -1`
 			# add track to the command
@@ -416,6 +427,12 @@ process () {
 				else
 					command="$command $tracknumber:\"$out_no_ext.$tracknumber.sup\""
 				fi
+			elif  [[ $subline == *"VobSub"* ]]; then
+				if [[ $numvob -lt 2 ]]; then
+					command="$command $tracknumber:\"$out_no_ext\""
+				else
+					command="$command $tracknumber:\"$out_no_ext.$tracknumber\""
+				fi
 			else
 				if [[ $numsrt -lt 2 ]]; then
 					command="$command $tracknumber:\"$out_no_ext.subtitle\""
@@ -423,7 +440,7 @@ process () {
 					command="$command $tracknumber:\"$out_no_ext.$tracknumber.subtitle\""
 				fi
 			fi
-			
+
 
 			# if only getting the first sub we can stop here
 			if [ $which_sub == "first" ]; then
@@ -433,12 +450,12 @@ process () {
 					break;
 				fi
 			fi
-			
+
 		done < <(mkvmerge -i "$ffull" | grep 'subtitles' ) # process substitution
-		
+
 		# finished constructing command by silencing mkvextract
 		command="$command > /dev/null 2>&1"
-		
+
 		if [ $preview == true ]; then
 			echo "available subs for $ffull"
 			mkvmerge -i "$ffull" | grep 'subtitles'
@@ -458,9 +475,9 @@ process () {
 				exit
 			fi
 		fi
-			
 
-    
+
+
 ################################################################################
 # ffmpeg stuff, mkvextract above
 ################################################################################
@@ -495,7 +512,7 @@ process () {
 		else
 			command="ffmpeg -n $verbosity $ins $maps $vopts $profile $lopts $filters $aopts $sopts $metadata \"$outfull\""
 		fi
-	
+
 		# off we go!!
 		if $preview ; then
 			echo " "
@@ -505,7 +522,7 @@ process () {
 			echo "$outdirfull"
 			echo "command:"
 			echo "$command"
-		
+
 		else
 			mkdir -p "$outdirfull" # make sure output directory exists
 			echo " "
@@ -526,30 +543,31 @@ process () {
 	fi
 }
 
-# contruct list of files to operate on 
+
+
+################################################################################
+# process one file or loop through all input files
+################################################################################
 if [ $onefile == true ]; then
 	echo "onefile mode"
 	process "$indir"
 else
 	FILES="$(find "$indir" -type f -iname \*.mkv -o -iname \*.MKV -o -iname \*.mp4 -o -iname \*.MP4 -o -iname \*.AVI -o -iname \*.avi | sort)"
 	echo "$FILES"
+	#set IFS to fix spaces in file names
+	SAVEIFS=$IFS
+	IFS=$(echo -en "\n\b")
+	for ffull in $FILES
+	do
+		process "$ffull"
+	done
+	# restore $IFS
+	IFS=$SAVEIFS
 fi
 
 
 
-################################################################################
-# loop through all input files
-################################################################################
-#set IFS to fix spaces in file names
-SAVEIFS=$IFS
-IFS=$(echo -en "\n")
-for ffull in $FILES
-do
-	echo "beginning of loop"
-	process "$ffull"
-done
-# restore $IFS
-IFS=$SAVEIFS
+
 
 echo " "
 echo "DONE"
