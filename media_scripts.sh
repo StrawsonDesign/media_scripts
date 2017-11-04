@@ -319,7 +319,7 @@ if [ $mode == "ffmpeg" ]; then
 			esac
 	done
 
-elif [ $mode == "mkvextract" ]; then
+else
 	# ask run options when extracting just subtitles
 	echo " "
 	echo "preview command, or run now?"
