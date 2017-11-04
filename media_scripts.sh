@@ -70,7 +70,7 @@ echo " "
 echo "what do you want to make?"
 echo "mkv and mp4 options enocde a video with ffmpeg"
 echo "first_sub and all_subs will use mkvextract to extract subtitles in any format"
-select opt in "mkv" "mp4" "first_sub" "second_sub" "all_subs"; do
+select opt in "mkv" "mp4" "first_sub" "second_sub" "all_subs" "remux_to_mkv"; do
 	case $opt in
 	mkv )
 		container="mkv"
@@ -101,6 +101,19 @@ select opt in "mkv" "mp4" "first_sub" "second_sub" "all_subs"; do
 	all_subs )
 		mode="mkvextract"
 		which_sub="all"
+		break;;
+	remux_mp4_to_mkv )
+		container="mkv"
+		format="matroska"
+		vmaps="-map 0:v:0"
+		vopts="-c:v copy"
+		amaps="-map 0:a"
+		aopts="-c:a copy"
+		smaps="-map 0:s"
+		sopts="-c:s srt"
+		video_metadata="-metadata:s:v:0 Title=\"Track 1\" -metadata:s:v:0 language=eng"
+		audio_metadata="-metadata:s:a:0 Title=\"Track 1\" -metadata:s:a:0 language=eng"
+		mode="remux"
 		break;;
 	*)
 		echo "invalid option"
@@ -484,7 +497,7 @@ process () {
 ################################################################################
 # ffmpeg stuff, mkvextract above
 ################################################################################
-	elif [ $mode == "ffmpeg" ]; then
+	else
 		# arguments that must be reset each time since they may change between files
 		ins=" -i \"$ffull\""
 
