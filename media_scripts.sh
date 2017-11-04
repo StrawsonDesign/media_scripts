@@ -162,13 +162,16 @@ if [ $mode == "ffmpeg" ]; then
 	echo "bwdif is a better deinterlacing filter but only works on newer ffmpeg"
 	echo "cropping takes off 2 pixels from top and bottom which removes"
 	echo "some interlacing artifacts from old dvds"
-	select opt in "none" "4k_to_1920" "w3fdif" "w3fdif_crop" "bwdif" "bwdif_crop" "hflip"; do
+	select opt in "none" "scale_to_1080" "scale_to_720" "w3fdif" "w3fdif_crop" "bwdif" "bwdif_crop" "hflip"; do
 		case $opt in
 		none )
 			filters=""
 			break;;
-		4k_to_1920 )
+		scale_to_1080 )
 			filters="-vf scale=1920:-1"
+			break;;
+		scale_to_720 )
+			filters="-vf scale=1280:-1"
 			break;;
 		w3fdif )
 			filters="-vf \"w3fdif\""
