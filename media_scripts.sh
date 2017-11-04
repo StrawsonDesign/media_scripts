@@ -568,12 +568,14 @@ if [ $onefile == true ]; then
 	process "$indir"
 else
 	FILES="$(find "$indir" -type f -iname \*.mkv -o -iname \*.MKV -o -iname \*.mp4 -o -iname \*.MP4 -o -iname \*.AVI -o -iname \*.avi | sort)"
+	echo "files to be processed:"
 	echo "$FILES"
 	#set IFS to fix spaces in file names
 	SAVEIFS=$IFS
 	IFS=$(echo -en "\n\b")
 	for ffull in $FILES
 	do
+		echo "starting: $ffull" 
 		process "$ffull"
 	done
 	# restore $IFS
