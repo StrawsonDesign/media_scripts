@@ -35,14 +35,14 @@ usage() { echo "Usage: media_scripts <in_dir> <out_dir>" 1>&2; exit 1; }
 
 # check arguments
 if [ "$#" -ne 2 ]; then
-    echo "expected two arguments"
-    usage
+	echo "expected two arguments"
+	usage
 fi
 
 # grab input and output directories
-indir="$1"
-outdir="$2"
-
+indir="$(readlink -f "$1")"
+outdir="$(readlink -f "$2")"
+echo ""
 # check arguments were given
 if [ -f "$indir" ]; then
 	echo "acting on just one file"
@@ -54,16 +54,13 @@ elif [ -d "$indir" ]; then
 	onefile=false
 else
 	echo "error, input is neither file nor directory"
+	echo "$indir"
 	exit 1
 fi
 
-if [ $outdir == "." ]; then
-	outdir=""
-	echo "writing output files to current working directory"
-else
-	echo "output directory:"
-	echo $outdir
-fi
+echo "output directory:"
+echo $outdir
+
 
 # ask container options
 echo " "
@@ -351,42 +348,56 @@ process () {
 		# ffull is complete path from root
 		# strip extension, still includes subdir!
 		fpath="${ffull%.*}"
-		# strip all path to get juts the name
-		fname=$(basename "$fpath")
+		# strip all path to get just the name
+		fnametmp=$(basename "$ffull") # strip directories
+		fname="${fnametmp%.*}" #strip extension
 		# to get subdir, start by stripping the name
-		subdir="${fpath%$fname}"
+		subdirtmp="$(dirname "$ffull")"
 		# then strip indir to get realtive path
-		subdir="${subdir#$indir}"
+		subdir="${subdirtmp#"$indir"}"
 		# final directory of indir to keep in output
-		indirbase=$(basename "$indir")
+		#indirbase=$(basename "$indir")
 		# directory to make later
-		outdirfull="$outdir$indirbase/$subdir"
+		if [ -z "$subdir" ]; then
+			outdirfull="$outdir"
+		else
+			outdirfull="$outdir$subdir"
+		fi
 		# place in outdir with mkv extension
-		out_no_ext="$outdirfull$fname"
+		out_no_ext="$outdirfull/$fname"
 		outfull="$out_no_ext.$container"
 	else
 		# strip extension, still includes subdir
 		fpath="${ffull%.*}"
-		# strip all path to get juts the name
-		fname=$(basename "$fpath")
+		# strip all path to get just the name
+		fnametmp=$(basename "$ffull")
+		fname="${fnametmp%.*}"
 		# directory to make later
 		outdirfull="$outdir"
-		out_no_ext="$outdir$fname"
+		out_no_ext="$outdir/$fname"
 		# place in outdir with mkv extension
 		outfull="$out_no_ext.$container"
 	fi
 
-	##debugging stuff
-	#echo "paths:"
-	#echo "$indir"
-	#echo "$outdir"
-	#echo "$ffull"
-	#echo "$fpath"
-	#echo "$fname"
-	#echo "$subdir"
-	#echo "$indirbase"
-	#echo "$outdirfull"
-	#echo "$outfull"
+	# #debugging stuff
+	# echo "indir:"
+	# echo "$indir"
+	# echo "outdir:"
+	# echo "$outdir"
+	# echo "ffull:"
+	# echo "$ffull"
+	# echo "fpath:"
+	# echo "$fpath"
+	# echo "fname:"
+	# echo "$fname"
+	# echo "subdirtmp:"
+	# echo "$subdirtmp"
+	# echo "subdir:"
+	# echo "$subdir"
+	# echo "outdirfull:"
+	# echo "$outdirfull"
+	# echo "outfull:"
+	# echo "$outfull"
 
 ################################################################################
 # mkvextract stuff, ffmpeg stuff below
@@ -521,11 +532,11 @@ process () {
 		maps="$vmaps $amaps $smaps"
 		metadata="-metadata title=\"\" $video_metadata $audio_metadata $sub_metadata"
 		if [ $twopass == "x264" ]; then
-			command="echo \"pass 1 of 2\" && ffmpeg -y $verbosity $ins $maps $vopts -pass 1 -passlogfile /tmp/ffmpeg2pass $profile $lopts $filters $aopts $sopts $metadata -f $format /dev/null && echo \"pass 2 of 2\" && ffmpeg -n $verbosity $ins $maps $vopts -pass 2 -passlogfile /tmp/ffmpeg2pass $profile $lopts $filters $aopts $sopts $metadata \"$outfull\""
+			command="echo \"pass 1 of 2\" && < /dev/null ffmpeg -y $verbosity $ins $maps $vopts -pass 1 -passlogfile /tmp/ffmpeg2pass $profile $lopts $filters $aopts $sopts $metadata -f $format /dev/null && echo \"pass 2 of 2\" && < /dev/null ffmpeg -n $verbosity $ins $maps $vopts -pass 2 -passlogfile /tmp/ffmpeg2pass $profile $lopts $filters $aopts $sopts $metadata \"$outfull\""
 		elif [ $twopass == "x265" ]; then
-			command="echo \"pass 1 of 2\" && ffmpeg -y $verbosity $ins $maps $vopts:pass=1 -passlogfile /tmp/ffmpeg2pass $profile $aopts -f $format /dev/null && echo \"pass 2 of 2\" && ffmpeg -n $verbosity $ins $maps $vopts:pass=2 -passlogfile /tmp/ffmpeg2pass $profile $lopts $filters $aopts $sopts $metadata \"$outfull\""
+			command="echo \"pass 1 of 2\" && < /dev/null ffmpeg -y $verbosity $ins $maps $vopts:pass=1 -passlogfile /tmp/ffmpeg2pass $profile $aopts -f $format /dev/null && echo \"pass 2 of 2\" && < /dev/null ffmpeg -n $verbosity $ins $maps $vopts:pass=2 -passlogfile /tmp/ffmpeg2pass $profile $lopts $filters $aopts $sopts $metadata \"$outfull\""
 		else
-			command="ffmpeg -n $verbosity $ins $maps $vopts $profile $lopts $filters $aopts $sopts $metadata \"$outfull\""
+			command="< /dev/null ffmpeg -n $verbosity $ins $maps $vopts $profile $lopts $filters $aopts $sopts $metadata \"$outfull\""
 		fi
 
 		# off we go!!
@@ -567,19 +578,34 @@ if [ $onefile == true ]; then
 	echo "onefile mode"
 	process "$indir"
 else
-	FILES="$(find "$indir" -type f -iname \*.mkv -o -iname \*.MKV -o -iname \*.mp4 -o -iname \*.MP4 -o -iname \*.AVI -o -iname \*.avi | sort)"
-	echo "files to be processed:"
-	echo "$FILES"
 	#set IFS to fix spaces in file names
-	SAVEIFS=$IFS
-	IFS=$(echo -en "\n\b")
-	for ffull in $FILES
-	do
-		echo "starting: $ffull" 
+	# SAVEIFS=$IFS
+	# IFS=$(echo -en "\n\b")
+	# IFS=$'\n'
+	# FILES="$(find "$indir" -type f -o -iname \*.mkv -o -iname \*.MKV -o -iname \*.mp4 -o -iname \*.MP4 -o -iname \*.AVI -o -iname \*.avi | sort)"
+	# echo "files to be processed:"
+	# echo "$FILES"
+	# for ffull in $(find "$indir" -type f -o -iname \*.mkv -o -iname \*.MKV -o -iname \*.mp4 -o -iname \*.MP4 -o -iname \*.AVI -o -iname \*.avi | sort) ;
+	# do
+	# 	echo "starting: $ffull"
+	# 	process "$ffull"
+	# done
+	# IFS=$SAVEIFS
+
+	while IFS= read -d $'\0' -r ffull ; do
+		#echo "starting: $ffull"
 		process "$ffull"
-	done
-	# restore $IFS
-	IFS=$SAVEIFS
+	done < <(find $indir -iname \*.mp4 -print0)
+	while IFS= read -d $'\0' -r ffull ; do
+		#echo "starting: $ffull"
+		process "$ffull"
+	done < <(find $indir -iname \*.mkv -print0)
+	while IFS= read -d $'\0' -r ffull ; do
+		#echo "starting: $ffull"
+		process "$ffull"
+	done < <(find $indir -iname \*.avi -print0)
+
+
 fi
 
 
