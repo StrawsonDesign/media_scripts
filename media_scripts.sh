@@ -579,31 +579,29 @@ if [ $onefile == true ]; then
 	process "$indir"
 else
 	#set IFS to fix spaces in file names
-	# SAVEIFS=$IFS
-	# IFS=$(echo -en "\n\b")
-	# IFS=$'\n'
-	# FILES="$(find "$indir" -type f -o -iname \*.mkv -o -iname \*.MKV -o -iname \*.mp4 -o -iname \*.MP4 -o -iname \*.AVI -o -iname \*.avi | sort)"
-	# echo "files to be processed:"
-	# echo "$FILES"
-	# for ffull in $(find "$indir" -type f -o -iname \*.mkv -o -iname \*.MKV -o -iname \*.mp4 -o -iname \*.MP4 -o -iname \*.AVI -o -iname \*.avi | sort) ;
-	# do
-	# 	echo "starting: $ffull"
-	# 	process "$ffull"
-	# done
-	# IFS=$SAVEIFS
+	SAVEIFS=$IFS
+	IFS=$(echo -en "\n\b")
+	FILES="$(find "$indir" -type f -iname \*.mkv -o -iname \*.mp4 -o -iname \*.avi | sort)"
+	echo "files to be processed:"
+	echo "$FILES"
+	for ffull in $FILES
+	do
+		process "$ffull"
+	done
+	IFS=$SAVEIFS
 
-	while IFS= read -d $'\0' -r ffull ; do
-		#echo "starting: $ffull"
-		process "$ffull"
-	done < <(find $indir -iname \*.mp4 -print0)
-	while IFS= read -d $'\0' -r ffull ; do
-		#echo "starting: $ffull"
-		process "$ffull"
-	done < <(find $indir -iname \*.mkv -print0)
-	while IFS= read -d $'\0' -r ffull ; do
-		#echo "starting: $ffull"
-		process "$ffull"
-	done < <(find $indir -iname \*.avi -print0)
+	# while IFS= read -d $'\0' -r ffull ; do
+	# 	#echo "starting: $ffull"
+	# 	process "$ffull"
+	# done < <(find $indir -iname \*.mp4 -print0)
+	# while IFS= read -d $'\0' -r ffull ; do
+	# 	#echo "starting: $ffull"
+	# 	process "$ffull"
+	# done < <(find $indir -iname \*.mkv -print0)
+	# while IFS= read -d $'\0' -r ffull ; do
+	# 	#echo "starting: $ffull"
+	# 	process "$ffull"
+	# done < <(find $indir -iname \*.avi -print0)
 
 
 fi
