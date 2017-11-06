@@ -121,7 +121,7 @@ if [ $mode == "ffmpeg" ]; then
 	# ask video codec question
 	echo " "
 	echo "Which Video codec to use?"
-	select opt in "x264_2pass_10M" "x264_2pass_7M" "x264_2pass_3M" "x264_rf18" "x264_rf20"  "x265_2pass_25M" "x265_rf21" "copy"; do
+	select opt in "x264_2pass_10M" "x264_2pass_7M" "x264_2pass_3M" "x264_rf18" "x264_rf20"  "x265_2pass_25M_main10" "x265_rf21" "copy"; do
 		case $opt in
 		copy )
 			vopts="-c:v copy"
@@ -154,8 +154,8 @@ if [ $mode == "ffmpeg" ]; then
 			profile="-profile:v high -level 4.1"
 			using_libx264=true;
 			break;;
-		x265_2pass_25M )
-			vopts="-c:v libx264 -preset slow -b:v 25000k -x265-params profile=main10:level=5.0:high-tier=1"
+		x265_2pass_25M_main10 )
+			vopts="-c:v libx265 -preset slow -b:v 30000k -x265-params profile=main10:level=5.0:high-tier=1"
 			twopass="x265";
 			break;;
 		x265_rf21 )
