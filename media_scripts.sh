@@ -155,7 +155,7 @@ if [ $mode == "ffmpeg" ]; then
 			using_libx264=true;
 			break;;
 		x265_2pass_25M_main10 )
-			vopts="-c:v libx265 -preset slow -b:v 30000k -x265-params profile=main10:level=5.0:high-tier=1"
+			vopts="-c:v libx265 -preset slow -b:v 25000k -x265-params profile=main10:level=5.0:high-tier=0"
 			twopass="x265";
 			break;;
 		x265_rf21 )
@@ -532,9 +532,11 @@ process () {
 		maps="$vmaps $amaps $smaps"
 		metadata="-metadata title=\"\" $video_metadata $audio_metadata $sub_metadata"
 		if [ $twopass == "x264" ]; then
-			command="echo \"pass 1 of 2\" && < /dev/null ffmpeg -y $verbosity $ins $maps $vopts -pass 1 -passlogfile /tmp/ffmpeg2pass $profile $lopts $filters $aopts $sopts $metadata -f $format /dev/null && echo \"pass 2 of 2\" && < /dev/null ffmpeg -n $verbosity $ins $maps $vopts -pass 2 -passlogfile /tmp/ffmpeg2pass $profile $lopts $filters $aopts $sopts $metadata \"$outfull\""
+			command1="< /dev/null ffmpeg -y $verbosity $ins $maps $vopts -pass 1 -passlogfile /tmp/ffmpeg2pass $profile $lopts $filters $aopts $sopts $metadata -f $format /dev/null"
+			command2="< /dev/null ffmpeg -n $verbosity $ins $maps $vopts -pass 2 -passlogfile /tmp/ffmpeg2pass $profile $lopts $filters $aopts $sopts $metadata \"$outfull\""
 		elif [ $twopass == "x265" ]; then
-			command="echo \"pass 1 of 2\" && < /dev/null ffmpeg -y $verbosity $ins $maps $vopts:pass=1 -passlogfile /tmp/ffmpeg2pass $profile $aopts -f $format /dev/null && echo \"pass 2 of 2\" && < /dev/null ffmpeg -n $verbosity $ins $maps $vopts:pass=2 -passlogfile /tmp/ffmpeg2pass $profile $lopts $filters $aopts $sopts $metadata \"$outfull\""
+			command1="< /dev/null ffmpeg -y $verbosity $ins $maps $vopts:pass=1:stats=\"/tmp/ffmpeg2pass\" $profile $aopts -f $format /dev/null"
+			command2="< /dev/null ffmpeg -n $verbosity $ins $maps $vopts:pass=2:stats=\"/tmp/ffmpeg2pass\" $profile $lopts $filters $aopts $sopts $metadata \"$outfull\""
 		else
 			command="< /dev/null ffmpeg -n $verbosity $ins $maps $vopts $profile $lopts $filters $aopts $sopts $metadata \"$outfull\""
 		fi
@@ -546,9 +548,15 @@ process () {
 			echo " "
 			echo "would make directory:"
 			echo "$outdirfull"
-			echo "command:"
-			echo "$command"
-
+			if [ $twopass == false ]; then
+				echo "command:"
+				echo "$command"
+			else
+				echo "pass 1 command:"
+				echo "$command1"
+				echo "pass 2 command"
+				echo "$command2"
+			fi
 		else
 			mkdir -p "$outdirfull" # make sure output directory exists
 			echo " "
@@ -556,14 +564,36 @@ process () {
 			echo "in:  $ffull"
 			echo "out: $outfull"
 			echo " "
-			if eval "$command"; then
-				echo "success!"
-				echo " "
+			## single pass execution
+			if [ $twopass == false ]; then
+				if eval "$command"; then
+					echo "success!"
+					echo " "
+				else
+					echo " "
+					echo "ffmpeg failure: $f"
+					echo " "
+					exit
+				fi
 			else
-				echo " "
-				echo "ffmpeg failure: $f"
-				echo " "
-				exit
+				echo "starting pass 1 of 2"
+				if eval "$command1"; then
+					echo "finished pass 1"
+				else
+					echo " "
+					echo "ffmpeg failure: $f"
+					echo " "
+					exit
+				fi
+				echo "starting pass 2 of 2"
+				if eval "$command2"; then
+					echo "finished pass 2"
+				else
+					echo " "
+					echo "ffmpeg failure: $f"
+					echo " "
+					exit
+				fi
 			fi
 		fi
 	fi
