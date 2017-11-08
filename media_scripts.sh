@@ -7,6 +7,7 @@
 shopt -s nullglob # prevent null files
 shopt -s globstar # for recursive for loops
 
+renice -p 19 $$
 
 # start with map for video, add to it later
 using_libx264=false;
