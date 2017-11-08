@@ -7,8 +7,6 @@
 shopt -s nullglob # prevent null files
 shopt -s globstar # for recursive for loops
 
-renice -p 19 $$
-
 # start with map for video, add to it later
 using_libx264=false;
 using_libx265=false;
@@ -533,13 +531,13 @@ process () {
 		maps="$vmaps $amaps $smaps"
 		metadata="-metadata title=\"\" $video_metadata $audio_metadata $sub_metadata"
 		if [ $twopass == "x264" ]; then
-			command1="< /dev/null ffmpeg -y $verbosity $ins $maps $vopts -pass 1 -passlogfile /tmp/ffmpeg2pass $profile $lopts $filters $aopts $sopts $metadata -f $format /dev/null"
-			command2="< /dev/null ffmpeg -n $verbosity $ins $maps $vopts -pass 2 -passlogfile /tmp/ffmpeg2pass $profile $lopts $filters $aopts $sopts $metadata \"$outfull\""
+			command1="nice -n 19 ffmpeg -y $verbosity $ins $maps $vopts -pass 1 -passlogfile /tmp/ffmpeg2pass $profile $lopts $filters $aopts $sopts $metadata -f $format /dev/null"
+			command2="nice -n 19 ffmpeg -n $verbosity $ins $maps $vopts -pass 2 -passlogfile /tmp/ffmpeg2pass $profile $lopts $filters $aopts $sopts $metadata \"$outfull\""
 		elif [ $twopass == "x265" ]; then
-			command1="< /dev/null ffmpeg -y $verbosity $ins $maps $vopts:pass=1:stats=\"/tmp/ffmpeg2pass\" $profile $aopts -f $format /dev/null"
-			command2="< /dev/null ffmpeg -n $verbosity $ins $maps $vopts:pass=2:stats=\"/tmp/ffmpeg2pass\" $profile $lopts $filters $aopts $sopts $metadata \"$outfull\""
+			command1="nice -n 19 ffmpeg -y $verbosity $ins $maps $vopts:pass=1:stats=\"/tmp/ffmpeg2pass\" $profile $aopts -f $format /dev/null"
+			command2="nice -n 19 ffmpeg -n $verbosity $ins $maps $vopts:pass=2:stats=\"/tmp/ffmpeg2pass\" $profile $lopts $filters $aopts $sopts $metadata \"$outfull\""
 		else
-			command="< /dev/null ffmpeg -n $verbosity $ins $maps $vopts $profile $lopts $filters $aopts $sopts $metadata \"$outfull\""
+			command="nice -n 19 ffmpeg -n $verbosity $ins $maps $vopts $profile $lopts $filters $aopts $sopts $metadata \"$outfull\""
 		fi
 
 		# off we go!!
