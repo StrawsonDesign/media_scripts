@@ -20,7 +20,10 @@ onefile=false
 twopass=false
 profile=""
 mode=""
+lopts=""
 sub_metadata="-metadata:s:s:0 Title=\"English\" -metadata:s:s:0 language=eng"
+video_metadata="-metadata:s:v:0 Title=\"Track 1\" -metadata:s:v:0 language=eng"
+audio_metadata="-metadata:s:a:0 Title=\"Track 1\" -metadata:s:a:0 language=eng"
 
 # other general options
 # -n tells ffmpeg to skip files if completed, not necessary anymore since we
@@ -66,15 +69,16 @@ echo " "
 echo "what do you want to make?"
 echo "mkv and mp4 options enocde a video with ffmpeg"
 echo "first_sub and all_subs will use mkvextract to extract subtitles in any format"
-select opt in "mkv" "mp4" "first_sub" "second_sub" "all_subs" "remux_mp4_to_mkv"; do
+echo "bluray rip preset will do 2-pass 10mbit h264, ac3 6ch audio from first track"
+echo "and embed srt subtitles if available"
+select opt in "mkv" "mp4" "first_sub" "second_sub" "all_subs" "remux_mp4_to_mkv" "bluray_rip_preset"; do
 	case $opt in
 	mkv )
 		container="mkv"
 		format="matroska"
 		sopts="-c:s copy"
 		vmaps="-map 0:v:0"
-		video_metadata="-metadata:s:v:0 Title=\"Track 1\" -metadata:s:v:0 language=eng"
-		audio_metadata="-metadata:s:a:0 Title=\"Track 1\" -metadata:s:a:0 language=eng"
+
 		mode="ffmpeg"
 		break;;
 	mp4 )
@@ -82,8 +86,6 @@ select opt in "mkv" "mp4" "first_sub" "second_sub" "all_subs" "remux_mp4_to_mkv"
 		format="mp4"
 		sopts="-c:s mov_text"
 		vmaps="-map 0:v:0"
-		video_metadata="-metadata:s:v:0 Title=\"Track 1\" -metadata:s:v:0 language=eng"
-		audio_metadata="-metadata:s:a:0 Title=\"Track 1\" -metadata:s:a:0 language=eng"
 		mode="ffmpeg"
 		break;;
 	first_sub )
@@ -107,9 +109,20 @@ select opt in "mkv" "mp4" "first_sub" "second_sub" "all_subs" "remux_mp4_to_mkv"
 		aopts="-c:a copy"
 		smaps="-map 0:s"
 		sopts="-c:s srt"
-		video_metadata="-metadata:s:v:0 Title=\"Track 1\" -metadata:s:v:0 language=eng"
-		audio_metadata="-metadata:s:a:0 Title=\"Track 1\" -metadata:s:a:0 language=eng"
 		mode="remux"
+		break;;
+	bluray_rip_preset )
+		container="mkv"
+		format="matroska"
+		vmaps="-map 0:v:0"
+		vopts="-c:v libx264 -preset slow -b:v 10000k"
+		profile="-profile:v high -level 4.1"
+		using_libx264=true;
+		twopass="x264";
+		amaps="-map 0:a"
+		aopts="-c:a ac3 -b:a 640k -ac 6"
+		autosubs=true;
+		mode="preset"
 		break;;
 	*)
 		echo "invalid option"
@@ -278,23 +291,18 @@ if [ $mode == "ffmpeg" ]; then
 		echo "invalid option"
 		esac
 	done
-fi #end check for non-srt containers
 
-if [ $mode == "ffmpeg" ]; then
 	# ask run options
 	echo " "
 	echo "preview ffmpeg command, do a 1 minute sample, 60 second sample, or run everything now?"
 	select opt in "preview" "run_now" "run_verbose" "sample1" "sample60" "sample60_middle" "run_now_no_chapters"; do
 		case $opt in
 		preview )
-			lopts=""
 			preview=true
 			break;;
 		run_now )
-			lopts=""
 			break;;
 		run_verbose )
-			lopts=""
 			verbosity="-stats"
 			break;;
 		sample1 )
@@ -307,7 +315,6 @@ if [ $mode == "ffmpeg" ]; then
 			lopts="-ss 00:02:00.0 -t 00:01:00.0"
 			break;;
 		run_now_no_chapters )
-			lopts=""
 			vmaps="$vmaps -map_chapters -1"
 			break;;
 		*)
@@ -315,6 +322,7 @@ if [ $mode == "ffmpeg" ]; then
 			esac
 	done
 
+## for all other modes just ask if we want to run or not
 else
 	# ask run options when extracting just subtitles
 	echo " "
@@ -322,18 +330,15 @@ else
 	select opt in "preview" "run_now"; do
 		case $opt in
 		preview )
-			lopts=""
 			preview=true
 			break;;
 		run_now )
-			lopts=""
 			break;;
 		*)
 			echo "invalid option"
 			esac
 	done
 fi
-
 
 
 
