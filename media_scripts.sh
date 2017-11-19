@@ -256,7 +256,7 @@ if [ $mode == "ffmpeg" ]; then
 	select opt in "ac3_5.1" "aac_5.1" "aac_stereo" "copy"; do
 		case $opt in
 		ac3_5.1 )
-			aopts="-c:a ac3 -b:a 640k -ac 6"
+			aopts="-c:a ac3 -b:a 384k -ac 6"
 			break;;
 		aac_stereo )
 			aopts="-c:a aac -b:a 128k"
