@@ -626,7 +626,7 @@ else
 	echo "files to be processed:"
 	echo "$FILES"
 	while read ffull; do
-		process "$fdull"
+		process "$ffull"
 	done < <(echo "$FILES")
 	IFS=$SAVEIFS
 
