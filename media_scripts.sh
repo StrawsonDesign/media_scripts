@@ -620,28 +620,15 @@ if [ $onefile == true ]; then
 else
 	#set IFS to fix spaces in file names
 	SAVEIFS=$IFS
+	#IFS=$(echo -en "\n\b")
 	IFS=$(echo -en "\n\b")
 	FILES="$(find "$indir" -type f -iname \*.mkv -o -iname \*.mp4 -o -iname \*.avi | sort)"
 	echo "files to be processed:"
 	echo "$FILES"
-	for ffull in $FILES
-	do
-		process "$ffull"
-	done
+	while read ffull; do
+		process "$fdull"
+	done < <(echo "$FILES")
 	IFS=$SAVEIFS
-
-	# while IFS= read -d $'\0' -r ffull ; do
-	# 	#echo "starting: $ffull"
-	# 	process "$ffull"
-	# done < <(find $indir -iname \*.mp4 -print0)
-	# while IFS= read -d $'\0' -r ffull ; do
-	# 	#echo "starting: $ffull"
-	# 	process "$ffull"
-	# done < <(find $indir -iname \*.mkv -print0)
-	# while IFS= read -d $'\0' -r ffull ; do
-	# 	#echo "starting: $ffull"
-	# 	process "$ffull"
-	# done < <(find $indir -iname \*.avi -print0)
 
 
 fi
