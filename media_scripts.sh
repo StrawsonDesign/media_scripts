@@ -24,7 +24,7 @@ lopts=""
 sub_metadata="-metadata:s:s:0 Title=\"English\" -metadata:s:s:0 language=eng"
 video_metadata="-metadata:s:v:0 Title=\"Track 1\" -metadata:s:v:0 language=eng"
 audio_metadata="-metadata:s:a:0 Title=\"Track 1\" -metadata:s:a:0 language=eng"
-
+other_opts="-nostdin"
 # other general options
 # -n tells ffmpeg to skip files if completed, not necessary anymore since we
 # check in the script before executing, but doesn't hurt to keep
@@ -542,13 +542,13 @@ process () {
 		maps="$vmaps $amaps $smaps"
 		metadata="-metadata title=\"\" $video_metadata $audio_metadata $sub_metadata"
 		if [ $twopass == "x264" ]; then
-			command1="nice -n 19 ffmpeg -y $verbosity $ins $maps $vopts -pass 1 -passlogfile /tmp/ffmpeg2pass $profile $lopts $filters $aopts $sopts $metadata -f $format /dev/null"
-			command2="nice -n 19 ffmpeg -n $verbosity $ins $maps $vopts -pass 2 -passlogfile /tmp/ffmpeg2pass $profile $lopts $filters $aopts $sopts $metadata \"$outfull\""
+			command1="nice -n 19 ffmpeg -y $verbosity $other_opts $ins $maps $vopts -pass 1 -passlogfile /tmp/ffmpeg2pass $profile $lopts $filters $aopts $sopts $metadata -f $format /dev/null"
+			command2="nice -n 19 ffmpeg -n $verbosity $other_opts $ins $maps $vopts -pass 2 -passlogfile /tmp/ffmpeg2pass $profile $lopts $filters $aopts $sopts $metadata \"$outfull\""
 		elif [ $twopass == "x265" ]; then
-			command1="nice -n 19 ffmpeg -y $verbosity $ins $maps $vopts:pass=1:stats=\"/tmp/ffmpeg2pass\" $profile $aopts -f $format /dev/null"
-			command2="nice -n 19 ffmpeg -n $verbosity $ins $maps $vopts:pass=2:stats=\"/tmp/ffmpeg2pass\" $profile $lopts $filters $aopts $sopts $metadata \"$outfull\""
+			command1="nice -n 19 ffmpeg -y $verbosity $other_opts $ins $maps $vopts:pass=1:stats=\"/tmp/ffmpeg2pass\" $profile $aopts -f $format /dev/null"
+			command2="nice -n 19 ffmpeg -n $verbosity $other_opts $ins $maps $vopts:pass=2:stats=\"/tmp/ffmpeg2pass\" $profile $lopts $filters $aopts $sopts $metadata \"$outfull\""
 		else
-			command="nice -n 19 ffmpeg -n $verbosity $ins $maps $vopts $profile $lopts $filters $aopts $sopts $metadata \"$outfull\""
+			command="nice -n 19 ffmpeg -n $verbosity $other_opts $ins $maps $vopts $profile $lopts $filters $aopts $sopts $metadata \"$outfull\""
 		fi
 
 		# off we go!!
