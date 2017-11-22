@@ -543,9 +543,10 @@ process () {
 			if [ -f "$fpath.srt" ]; then
 				ins="$ins -i \"$fpath.srt\""
 				smaps="-map 1:s"
-				scodec="srt"
+				sopts="-c:s srt"
 			else
 				smaps="-map 0:s:0"
+				sopts=""
 			fi
 		fi
 
