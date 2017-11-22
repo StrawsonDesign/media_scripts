@@ -71,7 +71,7 @@ echo "mkv and mp4 options enocde a video with ffmpeg"
 echo "first_sub and all_subs will use mkvextract to extract subtitles in any format"
 echo "bluray rip preset will do 2-pass 10mbit h264, ac3 6ch audio from first track"
 echo "and embed srt subtitles if available"
-select opt in "mkv" "mp4" "first_sub" "second_sub" "all_subs" "remux_mp4_to_mkv" "bluray_rip_preset"; do
+select opt in "mkv" "mp4" "first_sub" "second_sub" "all_subs" "remux_mp4_to_mkv" "bluray_rip_preset" "embed_srt"; do
 	case $opt in
 	mkv )
 		container="mkv"
@@ -123,6 +123,16 @@ select opt in "mkv" "mp4" "first_sub" "second_sub" "all_subs" "remux_mp4_to_mkv"
 		aopts="-c:a ac3 -b:a 640k -ac 6"
 		autosubs=true;
 		mode="preset"
+		break;;
+	embed_srt )
+		container="mkv"
+		format="matroska"
+		vmaps="-map 0:v:0"
+		vopts="-c:v copy"
+		amaps="-map 0:a"
+		aopts="-c:a copy"
+		autosubs=true;
+		mode="embed_srt"
 		break;;
 	*)
 		echo "invalid option"
