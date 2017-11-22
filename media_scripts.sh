@@ -129,7 +129,7 @@ select opt in "mkv" "mp4" "first_sub" "second_sub" "all_subs" "remux_mp4_to_mkv"
 		format="matroska"
 		vmaps="-map 0:v:0"
 		vopts="-c:v copy"
-		amaps="-map 0:a"
+		amaps="-map 0:a:0"
 		aopts="-c:a copy"
 		autosubs=true;
 		mode="embed_srt"
