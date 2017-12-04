@@ -156,7 +156,7 @@ if [ $mode == "ffmpeg" ]; then
 	select opt in "x264_2pass_10M" "x264_2pass_7M" "x264_2pass_3M" "x264_2pass_1.5M" "x264_rf18" "x264_rf20"  "x265_2pass_30M_5.0" "x265_rf21" "copy"; do
 		case $opt in
 		copy )
-			vcopy=true
+			vcopy="true"
 			vopts="-c:v copy"
 			break;;
 		x264_2pass_10M )
@@ -205,7 +205,7 @@ if [ $mode == "ffmpeg" ]; then
 			esac
 	done
 
-	if [ vcopy == true ]; then
+	if [ $vcopy -ne "true" ]; then
 		# ask delinterlacing filter question
 		echo " "
 		echo "use videofilter?"
