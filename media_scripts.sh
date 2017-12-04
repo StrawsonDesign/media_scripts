@@ -71,9 +71,9 @@ echo "mkv and mp4 options enocde a video with ffmpeg"
 echo "first_sub and all_subs will use mkvextract to extract subtitles in any format"
 echo "bluray rip preset will do 2-pass 10mbit h264, ac3 6ch audio from first track"
 echo "and embed srt subtitles if available"
-select opt in "mkv" "mp4" "first_sub" "second_sub" "all_subs" "remux_mp4_to_mkv" "bluray_rip_preset" "embed_srt"; do
+select opt in "preset_bluray_rip" "preset_only_encode_audio" "embed_srt" "custom_mkv" "custom_mp4"  "extract_first_sub" "extract_second_sub" "extract_all_subs" "remux_mp4_to_mkv"; do
 	case $opt in
-	mkv )
+	custom_mkv )
 		container="mkv"
 		format="matroska"
 		sopts="-c:s copy"
@@ -81,22 +81,22 @@ select opt in "mkv" "mp4" "first_sub" "second_sub" "all_subs" "remux_mp4_to_mkv"
 
 		mode="ffmpeg"
 		break;;
-	mp4 )
+	custom_mp4 )
 		container="mp4"
 		format="mp4"
 		sopts="-c:s mov_text"
 		vmaps="-map 0:v:0"
 		mode="ffmpeg"
 		break;;
-	first_sub )
+	extract_first_sub )
 		mode="mkvextract"
 		which_sub="first"
 		break;;
-	second_sub )
+	extract_second_sub )
 		mode="mkvextract"
 		which_sub="second"
 		break;;
-	all_subs )
+	extract_all_subs )
 		mode="mkvextract"
 		which_sub="all"
 		break;;
@@ -111,7 +111,7 @@ select opt in "mkv" "mp4" "first_sub" "second_sub" "all_subs" "remux_mp4_to_mkv"
 		sopts="-c:s srt"
 		mode="remux"
 		break;;
-	bluray_rip_preset )
+	preset_bluray_rip )
 		container="mkv"
 		format="matroska"
 		vmaps="-map 0:v:0"
@@ -120,7 +120,7 @@ select opt in "mkv" "mp4" "first_sub" "second_sub" "all_subs" "remux_mp4_to_mkv"
 		using_libx264=true;
 		twopass="x264";
 		amaps="-map 0:a"
-		aopts="-c:a ac3 -b:a 640k -ac 6"
+		aopts="-c:a eac3 -b:a 640k"
 		autosubs=true;
 		mode="preset"
 		break;;
@@ -134,6 +134,16 @@ select opt in "mkv" "mp4" "first_sub" "second_sub" "all_subs" "remux_mp4_to_mkv"
 		autosubs=true;
 		mode="embed_srt"
 		break;;
+	preset_only_encode_audio )
+		container="mkv"
+		format="matroska"
+		vmaps="-map 0:v:0"
+		vopts="-c:v copy"
+		amaps="-map 0:a:0"
+		aopts="-c:a eac3 -b:a 640k"
+		autosubs=true;
+		mode="eac3_auto_subs"
+		break;;
 	*)
 		echo "invalid option"
 		esac
@@ -146,6 +156,7 @@ if [ $mode == "ffmpeg" ]; then
 	select opt in "x264_2pass_10M" "x264_2pass_7M" "x264_2pass_3M" "x264_2pass_1.5M" "x264_rf18" "x264_rf20"  "x265_2pass_25M_main10" "x265_rf21" "copy"; do
 		case $opt in
 		copy )
+			vcopy=true
 			vopts="-c:v copy"
 			break;;
 		x264_2pass_10M )
@@ -194,42 +205,44 @@ if [ $mode == "ffmpeg" ]; then
 			esac
 	done
 
-	# ask delinterlacing filter question
-	echo " "
-	echo "use videofilter?"
-	echo "bwdif is a better deinterlacing filter but only works on newer ffmpeg"
-	echo "cropping takes off 2 pixels from top and bottom which removes"
-	echo "some interlacing artifacts from old dvds"
-	select opt in "none" "scale_to_1080" "scale_to_720" "w3fdif" "w3fdif_crop" "bwdif" "bwdif_crop" "hflip"; do
-		case $opt in
-		none )
-			filters=""
-			break;;
-		scale_to_1080 )
-			filters="-vf scale=1920:-1"
-			break;;
-		scale_to_720 )
-			filters="-vf scale=1280:-1"
-			break;;
-		w3fdif )
-			filters="-vf \"w3fdif\""
-			break;;
-		w3fdif_crop )
-			filters="-vf \"crop=in_w:in_h-4:0:2, w3fdif\""
-			break;;
-		bwdif )
-			filters="-vf \"bwdif\""
-			break;;
-		bwdif_crop )
-			filters="-vf \"crop=in_w:in_h-4:0:2, bwdif\""
-			break;;
-		hflip )
-			filters="-vf \"hflip\""
-			break;;
-		*)
-			echo "invalid option"
-			esac
-	done
+	if [ vcopy == true ]; then
+		# ask delinterlacing filter question
+		echo " "
+		echo "use videofilter?"
+		echo "bwdif is a better deinterlacing filter but only works on newer ffmpeg"
+		echo "cropping takes off 2 pixels from top and bottom which removes"
+		echo "some interlacing artifacts from old dvds"
+		select opt in "none" "scale_to_1080" "scale_to_720" "w3fdif" "w3fdif_crop" "bwdif" "bwdif_crop" "hflip"; do
+			case $opt in
+			none )
+				filters=""
+				break;;
+			scale_to_1080 )
+				filters="-vf scale=1920:-1"
+				break;;
+			scale_to_720 )
+				filters="-vf scale=1280:-1"
+				break;;
+			w3fdif )
+				filters="-vf \"w3fdif\""
+				break;;
+			w3fdif_crop )
+				filters="-vf \"crop=in_w:in_h-4:0:2, w3fdif\""
+				break;;
+			bwdif )
+				filters="-vf \"bwdif\""
+				break;;
+			bwdif_crop )
+				filters="-vf \"crop=in_w:in_h-4:0:2, bwdif\""
+				break;;
+			hflip )
+				filters="-vf \"hflip\""
+				break;;
+			*)
+				echo "invalid option"
+				esac
+		done
+	fi
 
 	# ask audio tracks question
 	echo " "
@@ -263,16 +276,16 @@ if [ $mode == "ffmpeg" ]; then
 	# ask audio codec question
 	echo " "
 	echo "Which audio codec to use?"
-	select opt in "ac3_5.1" "aac_5.1" "aac_stereo" "copy"; do
+	select opt in "eac3_5.1" "eac3_2.0" "ac3_5.1" "aac_2.0" "copy"; do
 		case $opt in
 		ac3_5.1 )
-			aopts="-c:a ac3 -b:a 384k -ac 6"
+			aopts="-c:a ac3 -b:a 640k"
+			break;;
+		eac3_5.1 )
+			aopts="-c:a eac3 -b:a 640k"
 			break;;
 		aac_stereo )
 			aopts="-c:a aac -b:a 128k"
-			break;;
-		aac_5.1 )
-			aopts="-c:a aac -b:a 384k"
 			break;;
 		copy )
 			aopts="-c:a copy"
@@ -343,12 +356,15 @@ else
 	# ask run options when extracting just subtitles
 	echo " "
 	echo "preview command, or run now?"
-	select opt in "preview" "run_now"; do
+	select opt in "preview" "run_now" "run_verbose"; do
 		case $opt in
 		preview )
 			preview=true
 			break;;
 		run_now )
+			break;;
+		run_verbose )
+			verbosity="-stats"
 			break;;
 		*)
 			echo "invalid option"
@@ -546,7 +562,7 @@ process () {
 				sopts="-c:s srt"
 			else
 				smaps="-map 0:s:0"
-				sopts=""
+				sopts="-c:s srt"
 			fi
 		fi
 
