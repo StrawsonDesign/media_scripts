@@ -569,12 +569,14 @@ process () {
 		#combine options into ffmpeg string
 		maps="$vmaps $amaps $smaps"
 		metadata="-metadata title=\"\" $video_metadata $audio_metadata $sub_metadata"
+
+		# construct ffmpeg command depending on mode
 		if [ $twopass == "x264" ]; then
-			command1="nice -n 19 ffmpeg -y $verbosity $other_opts $ins $maps $vopts -pass 1 -passlogfile /tmp/ffmpeg2pass $profile $lopts $filters $aopts $sopts $metadata -f $format /dev/null"
-			command2="nice -n 19 ffmpeg -n $verbosity $other_opts $ins $maps $vopts -pass 2 -passlogfile /tmp/ffmpeg2pass $profile $lopts $filters $aopts $sopts $metadata \"$outfull\""
+			command1="nice -n 19 ffmpeg -y $verbosity $other_opts $ins $maps $vopts -pass 1 -passlogfile \"/tmp/$fname\" $profile $lopts $filters $aopts $sopts $metadata -f $format /dev/null"
+			command2="nice -n 19 ffmpeg -n $verbosity $other_opts $ins $maps $vopts -pass 2 -passlogfile \"/tmp/$fname\" $profile $lopts $filters $aopts $sopts $metadata \"$outfull\""
 		elif [ $twopass == "x265" ]; then
-			command1="nice -n 19 ffmpeg -y $verbosity $other_opts $ins $maps $vopts:pass=1:stats=\"/tmp/ffmpeg2pass\" $profile $aopts -f $format /dev/null"
-			command2="nice -n 19 ffmpeg -n $verbosity $other_opts $ins $maps $vopts:pass=2:stats=\"/tmp/ffmpeg2pass\" $profile $lopts $filters $aopts $sopts $metadata \"$outfull\""
+			command1="nice -n 19 ffmpeg -y $verbosity $other_opts $ins $maps $vopts:pass=1:stats=\"/tmp/$fname\" $profile $aopts -f $format /dev/null"
+			command2="nice -n 19 ffmpeg -n $verbosity $other_opts $ins $maps $vopts:pass=2:stats=\"/tmp/$fname\" $profile $lopts $filters $aopts $sopts $metadata \"$outfull\""
 		else
 			command="nice -n 19 ffmpeg -n $verbosity $other_opts $ins $maps $vopts $profile $lopts $filters $aopts $sopts $metadata \"$outfull\""
 		fi
@@ -631,7 +633,7 @@ process () {
 					echo "ffmpeg failure: $f"
 					echo " "
 					exit
-				fi
+				fi			
 			fi
 		fi
 	fi
