@@ -71,8 +71,92 @@ echo "mkv and mp4 options enocde a video with ffmpeg"
 echo "first_sub and all_subs will use mkvextract to extract subtitles in any format"
 echo "bluray rip preset will do 2-pass 10mbit h264, ac3 6ch audio from first track"
 echo "and embed srt subtitles if available"
-select opt in "preset_bluray_rip" "preset_only_encode_audio" "embed_srt" "custom_mkv" "custom_mp4"  "extract_first_sub" "extract_second_sub" "extract_all_subs" "remux_mp4_to_mkv"; do
+select opt in "x264_10M_eac3_audio1" "x264_10M_eac3_audio2" "x264_10M_copy_audio1" "x264_10M_copy_audio2" "copy_vid_copy_audio1_embed_sub" "copy_vid_eac3_audio1_embed_sub" "remux_mp4_to_mkv" "custom_mkv" "custom_mp4"  "extract_first_sub" "extract_second_sub" "extract_all_subs" ; do
 	case $opt in
+
+	x264_10M_eac3_audio1 )
+		container="mkv"
+		format="matroska"
+		vmaps="-map 0:v:0"
+		vopts="-c:v libx264 -preset slow -b:v 10000k"
+		profile="-profile:v high -level 4.1"
+		using_libx264=true;
+		twopass="x264";
+		amaps="-map 0:a:0"
+		aopts="-c:a eac3 -b:a 640k"
+		autosubs=true;
+		mode="preset"
+		break;;
+	x264_10M_eac3_audio2 )
+		container="mkv"
+		format="matroska"
+		vmaps="-map 0:v:0"
+		vopts="-c:v libx264 -preset slow -b:v 10000k"
+		profile="-profile:v high -level 4.1"
+		using_libx264=true;
+		twopass="x264";
+		amaps="-map 0:a:1"
+		aopts="-c:a copy"
+		autosubs=true;
+		mode="preset"
+		break;;
+	x264_10M_copy_audio1 )
+		container="mkv"
+		format="matroska"
+		vmaps="-map 0:v:0"
+		vopts="-c:v libx264 -preset slow -b:v 10000k"
+		profile="-profile:v high -level 4.1"
+		using_libx264=true;
+		twopass="x264";
+		amaps="-map 0:a:0"
+		aopts="-c:a copy"
+		autosubs=true;
+		mode="preset"
+		break;;
+	x264_10M_copy_audio2 )
+		container="mkv"
+		format="matroska"
+		vmaps="-map 0:v:0"
+		vopts="-c:v libx264 -preset slow -b:v 10000k"
+		profile="-profile:v high -level 4.1"
+		using_libx264=true;
+		twopass="x264";
+		amaps="-map 0:a:1"
+		aopts="-c:a copy"
+		autosubs=true;
+		mode="preset"
+		break;;
+	copy_vid_copy_audio1_embed_sub )
+		container="mkv"
+		format="matroska"
+		vmaps="-map 0:v:0"
+		vopts="-c:v copy"
+		amaps="-map 0:a:0"
+		aopts="-c:a copy"
+		autosubs=true;
+		mode="embed_srt"
+		break;;
+	copy_vid_eac3_audio1_embed_sub )
+		container="mkv"
+		format="matroska"
+		vmaps="-map 0:v:0"
+		vopts="-c:v copy"
+		amaps="-map 0:a:0"
+		aopts="-c:a eac3 -b:a 640k"
+		autosubs=true;
+		mode="eac3_auto_subs"
+		break;;
+	remux_mp4_to_mkv )
+		container="mkv"
+		format="matroska"
+		vmaps="-map 0:v:0"
+		vopts="-c:v copy"
+		amaps="-map 0:a"
+		aopts="-c:a copy"
+		smaps="-map 0:s"
+		sopts="-c:s srt"
+		mode="remux"
+		break;;
 	custom_mkv )
 		container="mkv"
 		format="matroska"
@@ -99,50 +183,6 @@ select opt in "preset_bluray_rip" "preset_only_encode_audio" "embed_srt" "custom
 	extract_all_subs )
 		mode="mkvextract"
 		which_sub="all"
-		break;;
-	remux_mp4_to_mkv )
-		container="mkv"
-		format="matroska"
-		vmaps="-map 0:v:0"
-		vopts="-c:v copy"
-		amaps="-map 0:a"
-		aopts="-c:a copy"
-		smaps="-map 0:s"
-		sopts="-c:s srt"
-		mode="remux"
-		break;;
-	preset_bluray_rip )
-		container="mkv"
-		format="matroska"
-		vmaps="-map 0:v:0"
-		vopts="-c:v libx264 -preset slow -b:v 10000k"
-		profile="-profile:v high -level 4.1"
-		using_libx264=true;
-		twopass="x264";
-		amaps="-map 0:a"
-		aopts="-c:a eac3 -b:a 640k"
-		autosubs=true;
-		mode="preset"
-		break;;
-	embed_srt )
-		container="mkv"
-		format="matroska"
-		vmaps="-map 0:v:0"
-		vopts="-c:v copy"
-		amaps="-map 0:a:0"
-		aopts="-c:a copy"
-		autosubs=true;
-		mode="embed_srt"
-		break;;
-	preset_only_encode_audio )
-		container="mkv"
-		format="matroska"
-		vmaps="-map 0:v:0"
-		vopts="-c:v copy"
-		amaps="-map 0:a:0"
-		aopts="-c:a eac3 -b:a 640k"
-		autosubs=true;
-		mode="eac3_auto_subs"
 		break;;
 	*)
 		echo "invalid option"
@@ -205,7 +245,7 @@ if [ $mode == "ffmpeg" ]; then
 			esac
 	done
 
-	if [ $vcopy -ne "true" ]; then
+	if [ "$vcopy" -ne "true" ]; then
 		# ask delinterlacing filter question
 		echo " "
 		echo "use videofilter?"
