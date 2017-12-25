@@ -753,7 +753,7 @@ export -f process_one_file
 ################################################################################
 if [ $onefile == true ]; then
 	echo "onefile mode"
-	process "$indir"
+	process_one_file "$indir"
 else
 	#set IFS to fix spaces in file names
 	SAVEIFS=$IFS
