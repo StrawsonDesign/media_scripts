@@ -18,6 +18,7 @@ outdir=false
 preview=false
 onefile=false
 twopass=false
+parallel=false
 profile=""
 mode=""
 lopts=""
@@ -32,18 +33,36 @@ other_opts="-nostdin"
 verbosity="-hide_banner -v fatal -stats"
 
 
-#print helpful usage to screen
-usage() { echo "Usage: media_scripts <in_dir> <out_dir>" 1>&2; exit 1; }
+# print helpful usage to screen
+usage() {
+	echo "General Usage:"
+	echo "media_scripts <in_dir> <out_dir>"
+	echo "if out_dir is omitted then a directory called finished will be created"
+	echo "when converting vobsubs to SRT the output files will always be in the same"
+	echo "directory as the original files."
+	echo " "
+	echo "show this help message:"
+	echo "media_scripts -h"
+	echo "media_scripts --help"
+	exit 0
+}
 
 # check arguments
-if [ "$#" -ne 2 ]; then
-	echo "expected two arguments"
+if [ "$1" == "-h" ]; then
 	usage
+	exit 0
+elif [ "$1" == "--help" ]; then
+	usage
+	exit 0
+elif [ "$#" -eq 2 ]; then
+	outdir="$(readlink -f "$2")"
+else
+	outdir="$(readlink -f "finished")"
 fi
 
 # grab input and output directories
 indir="$(readlink -f "$1")"
-outdir="$(readlink -f "$2")"
+
 echo ""
 # check arguments were given
 if [ -f "$indir" ]; then
@@ -66,67 +85,33 @@ echo $outdir
 
 # ask container options
 echo " "
-echo "what do you want to make?"
-echo "mkv and mp4 options enocde a video with ffmpeg"
-echo "first_sub and all_subs will use mkvextract to extract subtitles in any format"
-echo "bluray rip preset will do 2-pass 10mbit h264, ac3 6ch audio from first track"
-echo "and embed srt subtitles if available"
-select opt in "x264_10M_eac3_audio1" "x264_10M_eac3_audio2" "x264_10M_copy_audio1" "x264_10M_copy_audio2" "copy_vid_copy_audio1_embed_sub" "copy_vid_eac3_audio1_embed_sub" "remux_mp4_to_mkv" "custom_mkv" "custom_mp4"  "extract_first_sub" "extract_second_sub" "extract_all_subs" ; do
-	case $opt in
+echo "what do you want to do?"
+echo " "
+echo "FFMPEG options, all auto-embed SRT subtitles if available:"
+echo "1) Copy Video & Copy Audio1 (embed srt subtitle)"
+echo "2) Copy Video & Encode Audio1 as 5.1 EAC3"
+echo "3) 2-pass 10M x264 & Encode Audio1 as 5.1 EAC3 (BR medium preset)"
+echo "4) 2-pass 7M  x264 & Encode Audio1 as 5.1 EAC3 (BR low preset)"
+echo "5) 2-pass 2M  x264 deinterlace & Copy Audio1 (DVD preset)"
+echo "6) remux mp4 to mkv"
+echo "7) custom mkv"
+echo "8) custom mp4"
+echo " "
+echo "MKVEXTRACT options"
+echo "9) extract first subtitle"
+echo "10) extract second subtitle"
+echo "11) extract all subtitles"
+echo " "
+echo "VOBSUB2SRT options"
+echo "12) OCR DVD subs to SRT"
+echo "13) OCR DVD subs to SRT in Parallel"
+echo " "
+echo "enter numerical selection"
 
-	x264_10M_eac3_audio1 )
-		container="mkv"
-		format="matroska"
-		vmaps="-map 0:v:0"
-		vopts="-c:v libx264 -preset slow -b:v 10000k"
-		profile="-profile:v high -level 4.1"
-		using_libx264=true;
-		twopass="x264";
-		amaps="-map 0:a:0"
-		aopts="-c:a eac3 -b:a 640k"
-		autosubs=true;
-		mode="preset"
-		break;;
-	x264_10M_eac3_audio2 )
-		container="mkv"
-		format="matroska"
-		vmaps="-map 0:v:0"
-		vopts="-c:v libx264 -preset slow -b:v 10000k"
-		profile="-profile:v high -level 4.1"
-		using_libx264=true;
-		twopass="x264";
-		amaps="-map 0:a:1"
-		aopts="-c:a copy"
-		autosubs=true;
-		mode="preset"
-		break;;
-	x264_10M_copy_audio1 )
-		container="mkv"
-		format="matroska"
-		vmaps="-map 0:v:0"
-		vopts="-c:v libx264 -preset slow -b:v 10000k"
-		profile="-profile:v high -level 4.1"
-		using_libx264=true;
-		twopass="x264";
-		amaps="-map 0:a:0"
-		aopts="-c:a copy"
-		autosubs=true;
-		mode="preset"
-		break;;
-	x264_10M_copy_audio2 )
-		container="mkv"
-		format="matroska"
-		vmaps="-map 0:v:0"
-		vopts="-c:v libx264 -preset slow -b:v 10000k"
-		profile="-profile:v high -level 4.1"
-		using_libx264=true;
-		twopass="x264";
-		amaps="-map 0:a:1"
-		aopts="-c:a copy"
-		autosubs=true;
-		mode="preset"
-		break;;
-	copy_vid_copy_audio1_embed_sub )
+
+read n
+case $n in
+	1) #Copy Video & Copy Audio1 (embed srt subtitle)"
 		container="mkv"
 		format="matroska"
 		vmaps="-map 0:v:0"
@@ -134,9 +119,9 @@ select opt in "x264_10M_eac3_audio1" "x264_10M_eac3_audio2" "x264_10M_copy_audio
 		amaps="-map 0:a:0"
 		aopts="-c:a copy"
 		autosubs=true;
-		mode="embed_srt"
-		break;;
-	copy_vid_eac3_audio1_embed_sub )
+		mode="ffmpeg_preset"
+		;;
+	2) # Copy Video & Encode Audio1 as 5.1 EAC3
 		container="mkv"
 		format="matroska"
 		vmaps="-map 0:v:0"
@@ -144,9 +129,49 @@ select opt in "x264_10M_eac3_audio1" "x264_10M_eac3_audio2" "x264_10M_copy_audio
 		amaps="-map 0:a:0"
 		aopts="-c:a eac3 -b:a 640k"
 		autosubs=true;
-		mode="eac3_auto_subs"
-		break;;
-	remux_mp4_to_mkv )
+		mode="ffmpeg_preset"
+		;;
+	3) # 2-pass 10M x264 & Encode Audio1 as 5.1 EAC3 (BR medium preset)
+		container="mkv"
+		format="matroska"
+		vmaps="-map 0:v:0"
+		vopts="-c:v libx264 -preset slow -b:v 10M"
+		profile="-profile:v high -level 4.1"
+		using_libx264=true;
+		twopass="x264";
+		amaps="-map 0:a:0"
+		aopts="-c:a eac3 -b:a 640k"
+		autosubs=true;
+		mode="ffmpeg_preset"
+		;;
+	4) # 2-pass 7M  x264 & Encode Audio1 as 5.1 EAC3 (BR low preset)
+		container="mkv"
+		format="matroska"
+		vmaps="-map 0:v:0"
+		vopts="-c:v libx264 -preset slow -b:v 7M"
+		profile="-profile:v high -level 4.1"
+		using_libx264=true;
+		twopass="x264";
+		amaps="-map 0:a:0"
+		aopts="-c:a eac3 -b:a 640k"
+		autosubs=true;
+		mode="ffmpeg_preset"
+		;;
+	5) # 2-pass 2M  x264 deinterlace & Copy Audio1 (DVD medium)
+		container="mkv"
+		format="matroska"
+		vmaps="-map 0:v:0"
+		vopts="-c:v libx264 -preset slow -b:v 2M"
+		filters="-vf \"bwdif\""
+		profile="-profile:v baseline -level 3.0"
+		using_libx264=true;
+		twopass="x264";
+		amaps="-map 0:a:0"
+		aopts="-c:a copy"
+		autosubs=true;
+		mode="ffmpeg_preset"
+		;;
+	6) # remux mp4 to mkv
 		container="mkv"
 		format="matroska"
 		vmaps="-map 0:v:0"
@@ -155,41 +180,54 @@ select opt in "x264_10M_eac3_audio1" "x264_10M_eac3_audio2" "x264_10M_copy_audio
 		aopts="-c:a copy"
 		smaps="-map 0:s"
 		sopts="-c:s srt"
-		mode="remux"
-		break;;
-	custom_mkv )
+		mode="ffmpeg_preset"
+		;;
+	7) # custom mkv
 		container="mkv"
 		format="matroska"
 		sopts="-c:s copy"
 		vmaps="-map 0:v:0"
-
-		mode="ffmpeg"
-		break;;
-	custom_mp4 )
+		mode="ffmpeg_custom"
+		;;
+	8) # custom mp4
 		container="mp4"
 		format="mp4"
 		sopts="-c:s mov_text"
 		vmaps="-map 0:v:0"
-		mode="ffmpeg"
-		break;;
-	extract_first_sub )
+		mode="ffmpeg_custom"
+		;;
+
+	# "MKVEXTRACT options"
+	9)  # extract_first_sub
 		mode="mkvextract"
 		which_sub="first"
-		break;;
-	extract_second_sub )
+		;;
+	10 ) # extract_second_sub
 		mode="mkvextract"
 		which_sub="second"
-		break;;
-	extract_all_subs )
+		;;
+	11 ) # extract_all_subs
 		mode="mkvextract"
 		which_sub="all"
-		break;;
+		;;
+
+	# "VOBSUB2SRT options"
+	12) # OCR DVD subs to SRT
+		mode="vobsub2srt"
+		;;
+	13) # OCR DVD subs to SRT in parallel
+		mode="vobsub2srt"
+		parallel=true
+		;;
+
 	*)
 		echo "invalid option"
-		esac
-done
+		exit;;
+esac
 
-if [ $mode == "ffmpeg" ]; then
+
+# extra questions for custom ffmpeg profile
+if [ $mode == "ffmpeg_custom" ]; then
 	# ask video codec question
 	echo " "
 	echo "Which Video codec to use?"
@@ -405,6 +443,7 @@ else
 			break;;
 		run_verbose )
 			verbosity="-stats"
+			vobsub_flags="$vobsub_flags --verbose"
 			break;;
 		*)
 			echo "invalid option"
@@ -414,11 +453,13 @@ fi
 
 
 
+
 ################################################################################
 # function for processing one file
 # first argument is the file name
 ################################################################################
-process () {
+process_one_file () {
+	## common processing of filename
 	ffull=$1
 	if [ $onefile == false ]; then
 		# ffull is complete path from root
@@ -449,7 +490,8 @@ process () {
 		fnametmp=$(basename "$ffull")
 		fname="${fnametmp%.*}"
 		# directory to make later
-		outdirfull="$outdir"
+		outdirfull="$outdir"echo "waiting for parallel jobs to finished"
+		sem --wait
 		out_no_ext="$outdir/$fname"
 		# place in outdir with mkv extension
 		outfull="$out_no_ext.$container"
@@ -478,7 +520,30 @@ process () {
 ################################################################################
 # mkvextract stuff, ffmpeg stuff below
 ################################################################################
-	if [ $mode == "mkvextract" ]; then
+	if [ $mode == "vobsub2srt" ]; then
+		command="vobsub2srt $vobsub_flags \"$fpath\""
+		if [ $preview == true ]; then
+			echo "would run:"
+			echo "$command"
+			echo " "
+		else
+			echo "starting $ffull"
+			if eval "$command"; then
+				echo "success!"
+				echo " "
+			else
+				echo " "
+				echo "vobsub2srt failure"
+				echo " "
+				exit
+			fi
+		fi
+
+
+################################################################################
+# mkvextract stuff, ffmpeg stuff below
+################################################################################
+	elif [ $mode == "mkvextract" ]; then
 
 		command="mkvextract tracks \"$ffull\""
 
@@ -673,12 +738,14 @@ process () {
 					echo "ffmpeg failure: $f"
 					echo " "
 					exit
-				fi			
+				fi
 			fi
 		fi
 	fi
 }
 
+# export process_one_file function so it can be run
+export -f process_one_file
 
 
 ################################################################################
@@ -692,13 +759,28 @@ else
 	SAVEIFS=$IFS
 	#IFS=$(echo -en "\n\b")
 	IFS=$(echo -en "\n\b")
-	FILES="$(find "$indir" -type f -iname \*.mkv -o -iname \*.mp4 -o -iname \*.avi | sort)"
+
+	if [ $mode == "vobsub2srt" ]; then
+		FILES="$(find "$indir" -type f -iname \*.idx | sort)"
+	else
+		FILES="$(find "$indir" -type f -iname \*.mkv -o -iname \*.mp4 -o -iname \*.avi | sort)"
+	fi
+
 	echo "files to be processed:"
 	echo "$FILES"
-	while read ffull; do
-		process "$ffull"
-	done < <(echo "$FILES")
+
+	if [ $parallel == true ]; then
+		echo "starting parallel"
+		find "$indir" -type f -iname \*.idx | cut -f 1 -d '.' | parallel vobsub2srt
+	else
+		while read ffull; do
+			process_one_file "$ffull"
+		done < <(echo "$FILES")
+	fi
 	IFS=$SAVEIFS
+
+
+
 
 
 fi
