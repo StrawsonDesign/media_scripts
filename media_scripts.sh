@@ -3,7 +3,6 @@
 ## ffmpeg batch script
 ## processes all files in a directory recursively
 
-#IFS=$'\n'
 shopt -s nullglob # prevent null files
 shopt -s globstar # for recursive for loops
 
@@ -19,6 +18,7 @@ preview=false
 onefile=false
 twopass=false
 parallel=false
+vmaps="-map 0:v:0"
 profile=""
 mode=""
 lopts=""
@@ -114,7 +114,6 @@ case $n in
 	1) #Copy Video & Copy Audio1 (embed srt subtitle)"
 		container="mkv"
 		format="matroska"
-		vmaps="-map 0:v:0"
 		vopts="-c:v copy"
 		amaps="-map 0:a:0"
 		aopts="-c:a copy"
@@ -124,7 +123,6 @@ case $n in
 	2) # Copy Video & Encode Audio1 as 5.1 EAC3
 		container="mkv"
 		format="matroska"
-		vmaps="-map 0:v:0"
 		vopts="-c:v copy"
 		amaps="-map 0:a:0"
 		aopts="-c:a eac3 -b:a 640k"
@@ -134,7 +132,6 @@ case $n in
 	3) # 2-pass 10M x264 & Encode Audio1 as 5.1 EAC3 (BR medium preset)
 		container="mkv"
 		format="matroska"
-		vmaps="-map 0:v:0"
 		vopts="-c:v libx264 -preset slow -b:v 10M"
 		profile="-profile:v high -level 4.1"
 		using_libx264=true;
@@ -147,7 +144,6 @@ case $n in
 	4) # 2-pass 7M  x264 & Encode Audio1 as 5.1 EAC3 (BR low preset)
 		container="mkv"
 		format="matroska"
-		vmaps="-map 0:v:0"
 		vopts="-c:v libx264 -preset slow -b:v 7M"
 		profile="-profile:v high -level 4.1"
 		using_libx264=true;
@@ -160,7 +156,6 @@ case $n in
 	5) # 2-pass 2M  x264 deinterlace & Copy Audio1 (DVD medium)
 		container="mkv"
 		format="matroska"
-		vmaps="-map 0:v:0"
 		vopts="-c:v libx264 -preset slow -b:v 2M"
 		filters="-vf \"bwdif\""
 		profile="-profile:v baseline -level 3.0"
@@ -174,7 +169,6 @@ case $n in
 	6) # remux mp4 to mkv
 		container="mkv"
 		format="matroska"
-		vmaps="-map 0:v:0"
 		vopts="-c:v copy"
 		amaps="-map 0:a"
 		aopts="-c:a copy"
@@ -185,15 +179,12 @@ case $n in
 	7) # custom mkv
 		container="mkv"
 		format="matroska"
-		sopts="-c:s copy"
-		vmaps="-map 0:v:0"
 		mode="ffmpeg_custom"
 		;;
 	8) # custom mp4
 		container="mp4"
 		format="mp4"
 		sopts="-c:s mov_text"
-		vmaps="-map 0:v:0"
 		mode="ffmpeg_custom"
 		;;
 
@@ -354,16 +345,16 @@ if [ $mode == "ffmpeg_custom" ]; then
 	# ask audio codec question
 	echo " "
 	echo "Which audio codec to use?"
-	select opt in "eac3_5.1" "eac3_2.0" "ac3_5.1" "aac_2.0" "copy"; do
+	select opt in "eac3_5.1" "eac3_2.0" "aac_2.0" "copy"; do
 		case $opt in
-		ac3_5.1 )
-			aopts="-c:a ac3 -b:a 640k"
-			break;;
 		eac3_5.1 )
 			aopts="-c:a eac3 -b:a 640k"
 			break;;
-		aac_stereo )
-			aopts="-c:a aac -b:a 128k"
+		eac3_2.0 )
+			aopts="-c:a eac3 -b:a 192k"
+			break;;
+		aac_2.0 )
+			aopts="-c:a aac -b:a 192k"
 			break;;
 		copy )
 			aopts="-c:a copy"
