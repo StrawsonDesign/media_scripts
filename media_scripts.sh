@@ -103,9 +103,12 @@ echo "10) extract second subtitle"
 echo "11) extract all subtitles"
 echo " "
 echo "VOBSUB2SRT options"
-echo "12) OCR DVD subs to SRT"
-echo "13) OCR DVD subs to SRT in Parallel"
+echo "12) OCR DVD idx/sub to SRT"
+echo "13) OCR DVD idx/sub to SRT in Parallel"
 echo " "
+echo "BDSUP2SUB options"
+echo "14) OCR BR sup to idx/sub"
+echo "15) Extract and OCR BluRay sub 1"
 echo "enter numerical selection"
 
 
@@ -209,6 +212,13 @@ case $n in
 	13) # OCR DVD subs to SRT in parallel
 		mode="vobsub2srt"
 		parallel=true
+		;;
+	# "BDSUP2SUB options"
+	14) # OCR BR sup to idx/sub
+		mode="bdsup2sub"
+		;;
+	15) # Extract and OCR BluRay sub 1
+		mode="bd2srt1"
 		;;
 
 	*)
@@ -481,8 +491,7 @@ process_one_file () {
 		fnametmp=$(basename "$ffull")
 		fname="${fnametmp%.*}"
 		# directory to make later
-		outdirfull="$outdir"echo "waiting for parallel jobs to finished"
-		sem --wait
+		outdirfull="$outdir"
 		out_no_ext="$outdir/$fname"
 		# place in outdir with mkv extension
 		outfull="$out_no_ext.$container"
@@ -509,7 +518,7 @@ process_one_file () {
 	# echo "$outfull"
 
 ################################################################################
-# mkvextract stuff, ffmpeg stuff below
+# vobsub2srt stuff
 ################################################################################
 	if [ $mode == "vobsub2srt" ]; then
 		command="vobsub2srt $vobsub_flags \"$fpath\""
@@ -530,9 +539,93 @@ process_one_file () {
 			fi
 		fi
 
+################################################################################
+# bdsup2sub stuff
+################################################################################
+	elif [ $mode == "bdsup2sub" ]; then
+		command="bdsup2sub \"$ffull\" -o \"$out_no_ext.idx\""
+		if [ $preview == true ]; then
+			echo "would run:"
+			echo "$command"
+			echo " "
+		else
+			echo "starting $ffull"
+			if eval "$command"; then
+				echo "success!"
+				echo " "
+			else
+				echo " "
+				echo "vobsub2srt failure"
+				echo " "
+				exit
+			fi
+		fi
 
 ################################################################################
-# mkvextract stuff, ffmpeg stuff below
+# full BD 2 srt stuff
+################################################################################
+	elif [ $mode == "bd2srt1" ]; then
+
+		command1="mkvextract tracks \"$ffull\""
+		foundsup=false;
+		# Find out which tracks contain the subtitles
+		while read subline
+		do
+			# Grep the number of the subtitle track
+			tracknumber=`echo $subline | egrep -o "[0-9]{1,2}" | head -1`
+			# add track to the command
+
+			if  [[ $subline == *"PGS"* ]]; then
+				if [[ $numpgs -lt 2 ]]; then
+					command1="$command1 $tracknumber:\"$fpath.sup\""
+					foundsup=true
+					break
+				fi
+			fi
+		done < <(mkvmerge -i "$ffull" | grep 'subtitles' ) # process substitution
+
+		if [ $foundsup == 'false' ]; then
+			echo "error, couldn't find bluray subtitles in:"
+			echo "$ffull"
+			exit 1
+		fi
+		# finished constructing command by silencing mkvextract
+		command1="$command1 > /dev/null 2>&1"
+
+		command2="bdsup2sub \"$fpath.sup\" -o \"$fpath.idx\""
+		command3="vobsub2srt $vobsub_flags \"$fpath\""
+		if [ $preview == true ]; then
+			echo "would run:"
+			echo "$command1"
+			echo "$command2"
+			echo "$command3"
+			echo " "
+		else
+			echo "starting $ffull"
+			if eval "$command1"; then
+				echo "."
+			else
+				echo "mkvextract failure"
+				exit 1
+			fi
+			if eval "$command2"; then
+				echo "."
+			else
+				echo "bdsup2sub failure"
+				exit 1
+			fi
+			if eval "$command3"; then
+				echo "."
+			else
+				echo "vobsub2srt failure"
+				exit 1
+			fi
+			echo "success!"
+		fi
+
+
+################################################################################
+# mkvextract stuff
 ################################################################################
 	elif [ $mode == "mkvextract" ]; then
 
@@ -638,7 +731,7 @@ process_one_file () {
 
 
 ################################################################################
-# ffmpeg stuff, mkvextract above
+# ffmpeg stuff
 ################################################################################
 	else
 		# arguments that must be reset each time since they may change between files
@@ -753,6 +846,8 @@ else
 
 	if [ $mode == "vobsub2srt" ]; then
 		FILES="$(find "$indir" -type f -iname \*.idx | sort)"
+	elif [ $mode == "bdsup2sub" ]; then
+		FILES="$(find "$indir" -type f -iname \*.sup | sort)"
 	else
 		FILES="$(find "$indir" -type f -iname \*.mkv -o -iname \*.mp4 -o -iname \*.avi | sort)"
 	fi
