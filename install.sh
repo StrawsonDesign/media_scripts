@@ -11,6 +11,6 @@ fi
 
 sudo ln -s media_scripts.sh /usr/local/bin/media_scripts
 sudo apt install ffmpeg mkvtoolnix
-sudo dpkg -i bdsup2sub-5.1.2.deb vobsub2srt-1.0pre7-11-g0ba6e25-Linux.deb
+sudo dpkg -i BDSup2Sub.deb vobsub2srt-1.0pre7-11-g0ba6e25-Linux.deb
 
 echo "DONE!"
