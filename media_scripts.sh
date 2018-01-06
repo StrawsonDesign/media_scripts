@@ -484,6 +484,7 @@ main () {
 
 
 	## Finally do stuff!!!
+	time_start_all=$(date +%s)
 	## process one file or loop through all input files
 	if [ $onefile == true ]; then
 		echo "onefile mode"
@@ -515,10 +516,28 @@ main () {
 		fi
 		IFS=$SAVEIFS
 	fi
-	echo " "
-	echo "DONE"
+
+
+
+	time_end_all=$(date +%s)
+	dt_all=$(($time_end_all-$time_start_all))
+	echo ""
+	print_exec_time "total execution time:" "$dt_all"
 } # end main()
 
+################################################################################
+# print_exec_timeprint_eprint_e
+# for printing how long it took to execute a segment, prints seconds and h/m/s
+# first argument is the prefix string, second is the time in seconds
+################################################################################
+print_exec_time () {
+	dt="$2"
+	((h=$dt/3600))
+	((m=($dt%3600)/60))
+	((s=$dt%60))
+	echo "$1"
+	printf " %02d:%02d:%02d\n"  $h $m $s
+}
 
 ################################################################################
 # runs ffmpeg with all settings from variables defined by parent functions
@@ -582,6 +601,7 @@ run_ffmpeg () {
 		echo "in:  $ffull"
 		echo "out: $outfull"
 		echo " "
+		time_start_ffmpeg=$(date +%s)
 		## single pass execution
 		if [ "$twopass" == "none" ]; then
 			if eval "$command1"; then
@@ -621,6 +641,11 @@ run_ffmpeg () {
 			echo "moving $f to $old_files_full"
 			mv "$f" "$old_files"
 		done
+
+		time_end_ffmpeg=$(date +%s)
+		dt_ffmpeg=$((time_end_ffmpeg-time_start_ffmpeg))
+		print_exec_time "ffmpeg execution time:" "$dt_ffmpeg"
+
 		echo "done with $fname"
 	fi
 
