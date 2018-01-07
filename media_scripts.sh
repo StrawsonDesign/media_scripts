@@ -517,8 +517,6 @@ main () {
 		IFS=$SAVEIFS
 	fi
 
-
-
 	time_end_all=$(date +%s)
 	dt_all=$(($time_end_all-$time_start_all))
 	echo ""
@@ -535,8 +533,7 @@ print_exec_time () {
 	((h=$dt/3600))
 	((m=($dt%3600)/60))
 	((s=$dt%60))
-	echo "$1"
-	printf " %02d:%02d:%02d\n"  $h $m $s
+	printf " %02d:%02d:%02d\n" $1 $h $m $s
 }
 
 ################################################################################
@@ -645,8 +642,8 @@ run_ffmpeg () {
 		time_end_ffmpeg=$(date +%s)
 		dt_ffmpeg=$((time_end_ffmpeg-time_start_ffmpeg))
 		print_exec_time "ffmpeg execution time:" "$dt_ffmpeg"
-
 		echo "done with $fname"
+		echo " "
 	fi
 
 } ## end run_ffmpeg()
