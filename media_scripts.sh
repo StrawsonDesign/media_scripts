@@ -150,10 +150,11 @@ main () {
 	echo "13) OCR DVD idx/sub to SRT in Parallel"
 	echo " "
 	echo "BDSUP2SUB options"
-	echo "14) OCR BR sup to idx/sub"
-	echo "15) Extract and OCR BluRay sub 1"
+	echo "14) Convert BR sup to idx/sub"
+	echo "15) Extract and OCR BluRay sup 1"
+	echo "16) Extract and OCR BluRay sub 2"
 	echo ""
-	echo "16) FULL AUTO (experimental)"
+	echo "17) FULL AUTO (experimental)"
 	echo "enter numerical selection"
 
 
@@ -221,11 +222,11 @@ main () {
 	# "MKVEXTRACT options"
 	9)  # extract_first_sub
 		mode="mkvextract"
-		which_sub="first"
+		which_sub="1"
 		;;
 	10 ) # extract_second_sub
 		mode="mkvextract"
-		which_sub="second"
+		which_sub="2"
 		;;
 	11 ) # extract_all_subs
 		mode="mkvextract"
@@ -241,13 +242,16 @@ main () {
 		parallel=true
 		;;
 	# "BDSUP2SUB options"
-	14) # OCR BR sup to idx/sub
+	14) # convert BR sup to idx/sub
 		mode="bdsup2sub"
 		;;
 	15) # Extract and OCR BluRay sub 1
 		mode="bd2srt1"
 		;;
-	16) # full auto
+	16) # Extract and OCR BluRay sub 1
+		mode="bd2srt2"
+		;;
+	17) # full auto
 		mode="full_auto"
 		;;
 
@@ -720,10 +724,11 @@ run_bdsup2sub () {
 }
 
 ################################################################################
-# bd2srt1 extracts first bluray sub and converts to srt
+# bd2srt extracts bluray sub and converts to srt
+# first argument is which subtitle to extract
 ################################################################################
-run_bd2srt1() {
-	run_mkvextract "first"
+run_bd2srt() {
+	run_mkvextract $1
 	run_bdsup2sub
 	run_vobsub2srt
 }
@@ -733,7 +738,22 @@ run_bd2srt1() {
 # first arguemnt is which to extract, "first" "second" or "all"
 ################################################################################
 run_mkvextract () {
-	which_sub="$1"
+
+	case "$1" in
+	1)
+		which_sub="1"
+		;;
+	2)
+		which_sub="2"
+		;;
+	all)
+		which_sub=""
+		;;
+	*)
+		echo "error: run_mkvextract needs first argument 1,2 or all"
+		exit 1
+	esac
+
 	command="mkvextract tracks \"$ffull\""
 
 	# count number of each type of sub so we know if it's necessary
@@ -763,7 +783,7 @@ run_mkvextract () {
 	do
 		counter=$((counter+1))
 		# if extracting the second sub, skip the first
-		if [ "$which_sub" == "second" ]; then
+		if [ "$which_sub" == "2" ]; then
 			if [ $counter -eq 1 ]; then
 				continue;
 			fi
@@ -800,9 +820,9 @@ run_mkvextract () {
 
 
 		# if only getting the first sub we can stop here
-		if [ "$which_sub" == "first" ]; then
+		if [ "$which_sub" == "1" ]; then
 			break;
-		elif [ "$which_sub" == "second" ]; then
+		elif [ "$which_sub" == "2" ]; then
 			if [ "$counter" == "2" ]; then
 				break;
 			fi
@@ -1088,7 +1108,10 @@ process_one_file () {
 		run_bdsup2sub
 		;;
 	bd2srt1 )
-		run_bd2srt1
+		run_bd2srt 1
+		;;
+	bd2srt2 )
+		run_bd2srt 2
 		;;
 	mkvextract )
 		run_mkvextract "$which_sub"
