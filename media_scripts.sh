@@ -37,7 +37,7 @@ sub_metadata="-metadata:s:s:0 Title=\"English\" -metadata:s:s:0 language=eng"
 # erase stupid video metadata set by scene groups
 video_metadata="-metadata:s:v:0 Title=\"Track 1\""
 audio_metadata="-metadata:s:a:0 Title=\"Track 1\""
-other_opts="-nostdin"
+other_opts="-nostdin -max_muxing_queue_size 1000"
 # place to dump original files once complete
 old_files="$(readlink -f "old_files")"
 
@@ -308,13 +308,14 @@ main () {
 			break;;
 		x265_rf21 )
 			vopts="-c:v libx265 -preset slow -x265-params profile=main10:crf=21:high-tier=1"
+			vprofile=""
 			break;;
 		*)
 			echo "invalid option"
 			esac
 		done
 
-		if [ "$vcopy" -ne "true" ]; then
+		if [ "$vcopy" != "true" ]; then
 			# ask delinterlacing filter question
 			echo " "
 			echo "use videofilter?"
@@ -424,6 +425,7 @@ main () {
 			smaps="-map 0:s:1"
 			break;;
 		none )
+			smaps=""
 			break;;
 		*)
 			echo "invalid option"
@@ -433,7 +435,7 @@ main () {
 		# ask run options
 		echo " "
 		echo "preview ffmpeg command, do a 1 minute sample, 60 second sample, or run everything now?"
-		select opt in "preview" "run_now" "run_verbose" "sample1" "sample60" "sample60_middle" "run_now_no_chapters"; do
+		select opt in "preview" "run_now" "run_verbose" "sample1" "sample10" "sample_60" "sample60_middle" "run_now_no_chapters"; do
 		case $opt in
 		preview )
 			preview=true
@@ -446,11 +448,14 @@ main () {
 		sample1 )
 			lopts="-t 00:00:01.0"
 			break;;
+		sample10 )
+			lopts="-t 00:00:10.0"
+			break;;
 		sample60 )
 			lopts="-t 00:01:00.0"
 			break;;
 		sample60_middle )
-			lopts="-ss 00:02:00.0 -t 00:01:00.0"
+			lopts="-ss 00:10:00.0 -t 00:01:00.0"
 			break;;
 		run_now_no_chapters )
 			vmaps="$vmaps -map_chapters -1"
@@ -533,7 +538,7 @@ print_exec_time () {
 	((h=$dt/3600))
 	((m=($dt%3600)/60))
 	((s=$dt%60))
-	printf " %02d:%02d:%02d\n" $1 $h $m $s
+	printf "%s %02d:%02d:%02d\n" "$1" $h $m $s
 }
 
 ################################################################################
@@ -568,13 +573,13 @@ run_ffmpeg () {
 
 	# construct ffmpeg command depending on mode
 	if [ "$twopass" == "x264" ]; then
-		local command1="nice -n 19 ffmpeg -y $verbosity $other_opts $ins $maps $vopts $vprofile -pass 1 -passlogfile \"/tmp/$fname\" $lopts $filters $aopts $sopts $metadata -f $format /dev/null"
-		local command2="nice -n 19 ffmpeg -n $verbosity $other_opts $ins $maps $vopts $vprofile -pass 2 -passlogfile \"/tmp/$fname\" $lopts $filters $aopts $sopts $metadata \"$outfull\""
+		local command1="nice -n 19 ffmpeg -y $verbosity $ins $other_opts $maps $vopts $vprofile -pass 1 -passlogfile \"/tmp/$fname\" $lopts $filters $aopts $sopts $metadata -f $format /dev/null"
+		local command2="nice -n 19 ffmpeg -n $verbosity $ins $other_opts $maps $vopts $vprofile -pass 2 -passlogfile \"/tmp/$fname\" $lopts $filters $aopts $sopts $metadata \"$outfull\""
 	elif [ "$twopass" == "x265" ]; then
-		local command1="nice -n 19 ffmpeg -y $verbosity $other_opts $ins $maps $vopts:pass=1:stats=\"/tmp/$fname\" $aopts -f $format /dev/null"
-		local command2="nice -n 19 ffmpeg -n $verbosity $other_opts $ins $maps $vopts:pass=2:stats=\"/tmp/$fname\" $lopts $filters $aopts $sopts $metadata \"$outfull\""
+		local command1="nice -n 19 ffmpeg -y $verbosity $ins $other_opts $maps $vopts:pass=1:stats=\"/tmp/$fname\" $aopts -f $format /dev/null"
+		local command2="nice -n 19 ffmpeg -n $verbosity $ins $other_opts $maps $vopts:pass=2:stats=\"/tmp/$fname\" $lopts $filters $aopts $sopts $metadata \"$outfull\""
 	elif [ "$twopass" == "none" ]; then
-		local command1="nice -n 19 ffmpeg -n $verbosity $other_opts $ins $maps $vopts $vprofile $lopts $filters $aopts $sopts $metadata \"$outfull\""
+		local command1="nice -n 19 ffmpeg -n $verbosity $ins $other_opts $maps $vopts $vprofile $lopts $filters $aopts $sopts $metadata \"$outfull\""
 	else
 		echo "ERROR, twopass variable should be none, x264, or x265"
 		exit 1
@@ -631,12 +636,12 @@ run_ffmpeg () {
 			fi
 		fi
 		## cleanup by moving completed original files
-		mkdir -p "$old_files_full"
+		mkdir -p "$old_files_full" 2> /dev/null
 		files_to_move=("$fpath"*)
 		for f in "$files_to_move"
 		do
-			echo "moving $f to $old_files_full"
-			mv "$f" "$old_files"
+			#echo "moving $f to $old_files_full"
+			mv "$f" "$old_files" 2> /dev/null
 		done
 
 		time_end_ffmpeg=$(date +%s)
