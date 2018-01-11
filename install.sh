@@ -9,7 +9,7 @@ fi
 
 if [ "$1" == "a" ]; then
 	echo "installing everything"
-	sudo apt install ffmpeg mkvtoolnix liblept5 libtesseract-data libtesseract-dev libtesseract3
+	sudo apt install ffmpeg mkvtoolnix liblept5 libtesseract-data libtesseract-dev libtesseract3 openjdk-8-jre
 	sudo dpkg -i BDSup2Sub.deb vobsub2srt-1.0pre7-11-g0ba6e25-Linux.deb
 fi
 
