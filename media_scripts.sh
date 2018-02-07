@@ -23,8 +23,8 @@ dvd_vopts="-c:v libx264 -preset slow -b:v 2M"
 dvd_vprofile="-profile:v baseline -level 3.0"
 dvd_twopass="x264"
 # audio presets
-surround_aopts="-c:a eac3 -b:a 640k"
-stereo_aopts="-c:a eac3 -b:a 192k"
+surround_aopts="-filter:a loudnorm -c:a eac3 -b:a 640k -ar 48k"
+stereo_aopts="-filter:a loudnorm -c:a eac3 -b:a 192k -ar 48k"
 # common filter for deinterlacing
 deinterlace_filter="-vf \"bwdif\""
 
@@ -37,7 +37,7 @@ sub_metadata="-metadata:s:s:0 Title=\"English\" -metadata:s:s:0 language=eng"
 # erase stupid video metadata set by scene groups
 video_metadata="-metadata:s:v:0 Title=\"Track 1\""
 audio_metadata="-metadata:s:a:0 Title=\"Track 1\""
-other_opts="-nostdin -max_muxing_queue_size 1000"
+other_opts="-nostdin -max_muxing_queue_size 1000 -reserve_index_space 200k"
 # place to dump original files once complete
 old_files="$(readlink -f "old_files")"
 
@@ -399,7 +399,7 @@ main () {
 			aopts="$stereo_aopts"
 			break;;
 		aac_2.0 )
-			aopts="-c:a aac -b:a 192k"
+			aopts="-c:a aac -b:a 192k -filter:a loudnorm"
 			break;;
 		copy )
 			aopts="-c:a copy"
@@ -641,8 +641,8 @@ run_ffmpeg () {
 		fi
 		## cleanup by moving completed original files
 		mkdir -p "$old_files_full" 2> /dev/null
-		files_to_move=("$fpath"*)
-		for f in "$files_to_move"
+		#files_to_move=("$fpath"*)
+		for f in $fpath*
 		do
 			echo "moving $f to $old_files_full"
 			mv "$f" "$old_files" 2> /dev/null
