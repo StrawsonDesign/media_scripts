@@ -644,7 +644,7 @@ run_ffmpeg () {
 		files_to_move=("$fpath"*)
 		for f in "$files_to_move"
 		do
-			#echo "moving $f to $old_files_full"
+			echo "moving $f to $old_files_full"
 			mv "$f" "$old_files" 2> /dev/null
 		done
 
@@ -751,6 +751,7 @@ run_mkvextract () {
 		;;
 	*)
 		echo "error: run_mkvextract needs first argument 1,2 or all"
+		echo "received $1"
 		exit 1
 	esac
 
@@ -1021,11 +1022,11 @@ run_full_auto () {
 	## now process video with auto configure settings!
 	# start with OCR if needed, start by extracing the sub
 	if [ "$ocr_mode" == "dvd" ]; then
-		run_mkvextract "first"
+		run_mkvextract "1"
 		run_vobsub2srt
 	# for bluray subs need to convert to dvd idx format for ocr
 	elif [ "$ocr_mode" == "bluray" ]; then
-		run_mkvextract "first"
+		run_mkvextract "1"
 		run_bdsup2sub
 		run_vobsub2srt
 	fi
@@ -1079,6 +1080,7 @@ process_one_file () {
 		out_no_ext="$outdir/$fname"
 		# place in outdir with mkv extension
 		outfull="$out_no_ext.$container"
+		old_files_full="$old_files"
 	fi
 
 	# #debugging stuff
