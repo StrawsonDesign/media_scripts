@@ -631,6 +631,8 @@ run_ffmpeg () {
 			fi
 			echo "starting pass 2 of 2"
 			if eval "$command2"; then
+				# finished, remove log file
+				rm "/tmp/$fname"*
 				echo "finished pass 2"
 			else
 				echo " "
@@ -641,8 +643,7 @@ run_ffmpeg () {
 		fi
 		## cleanup by moving completed original files
 		mkdir -p "$old_files_full" 2> /dev/null
-		#files_to_move=("$fpath"*)
-		for f in $fpath*
+		for f in "$fpath"*
 		do
 			echo "moving $f to $old_files_full"
 			mv "$f" "$old_files" 2> /dev/null
@@ -712,6 +713,8 @@ run_bdsup2sub () {
 			rm -f "fpath.sub"
 		fi
 		if eval "$command"; then
+			# done, remove old sup fie
+			rm "$fpath.sup"
 			echo "bdsup2sub success!"
 			echo " "
 		else
