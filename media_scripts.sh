@@ -745,6 +745,7 @@ run_bd2srt() {
 # first arguemnt is which to extract, "first" "second" or "all"
 ################################################################################
 run_mkvextract () {
+	echo "running mkvextract tracks: $1"
 
 	case "$1" in
 	1)
@@ -761,6 +762,7 @@ run_mkvextract () {
 		echo "received $1"
 		exit 1
 	esac
+
 
 	command="mkvextract tracks \"$ffull\""
 
@@ -1014,6 +1016,9 @@ run_full_auto () {
 	# if embedded subs are text formatted, use that
 	elif [ "$orig_scodec1" == "subrip" ] || [ "$orig_scodec1" == "ass" ]; then
 		ocr_mode="none"
+		auto_subs=false
+		smaps="-map 0:s:0"
+		sopts="-c:s srt"
 	# if dvd subs, ocr those
 	elif [ "$orig_scodec1" == "dvd_subtitle" ]; then
 		ocr_mode="dvd"
