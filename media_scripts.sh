@@ -871,13 +871,14 @@ run_full_auto () {
 	local orig_acodec1=`ffprobe -i "$ffull" -v error -of default=noprint_wrappers=1:nokey=1 -select_streams a:0 -show_entries stream=codec_name`
 	local orig_achan1=`ffprobe -i "$ffull" -v error -of default=noprint_wrappers=1:nokey=1 -select_streams a:0 -show_entries stream=channels`
 	local orig_scodec1=`ffprobe -i "$ffull" -v error -of default=noprint_wrappers=1:nokey=1 -select_streams s:0 -show_entries stream=codec_name`
-	if [ "$orig_scodec1" == "" ]; then orig_scodec1="none"; fi
 
-	## todo: add logic to aux subtitles and audio channels
-	#orig_acodec2=`ffprobe -i "$ffull" -select_streams a:1 -show_entries stream=codec_name $probe_opts`
-	#orig_scodec2=`ffprobe -i "$ffull" -select_streams s:1 -show_entries stream=codec_name $probe_opts`
-	#if [ "$orig_acodec2" == "" ]; then orig_acodec2="none"; fi
-	#if [ "$orig_scodec2" == "" ]; then orig_scodec2="none"; fi
+	local orig_acodec2=`ffprobe -i "$ffull" -v error -of default=noprint_wrappers=1:nokey=1 -select_streams a:1 -show_entries stream=codec_name`
+	local orig_scodec2=`ffprobe -i "$ffull" -v error -of default=noprint_wrappers=1:nokey=1 -select_streams s:1 -show_entries stream=codec_name`
+	local orig_sforced1=`ffprobe -i "$ffull" -v error -of default=noprint_wrappers=1:nokey=1 -select_streams s:1 -show_entries disposition=forced`
+
+	if [ "$orig_scodec1" == "" ]; then orig_scodec1="none"; fi
+	if [ "$orig_acodec2" == "" ]; then orig_acodec2="none"; fi
+	if [ "$orig_scodec2" == "" ]; then orig_scodec2="none"; fi
 
 
 	#decide interlace mode
@@ -899,10 +900,11 @@ run_full_auto () {
 		echo "interlaced: $interlaced"
 		echo "bitrate: $(("$orig_vbr"/1000000)) Mb/s"
 		echo "acodec1: $orig_acodec1"
+		echo "acodec2: $orig_acodec2"
 		echo "achannels1: $orig_achan1"
 		echo "scodec1: $orig_scodec1"
-		#echo "acodec2: $orig_acodec2"
-		#echo "scodec2: $orig_scodec2"
+		echo "scodec2: $orig_scodec2"
+		echo "sforced1: $orig_sforced1"
 		echo ""
 	fi
 
@@ -972,12 +974,23 @@ run_full_auto () {
 
 	## now to decide audio
 	# if already aac, ac3, or eac3, just copy
-	if [ "$orig_acodec1" == "eac3" ] || [ "$orig_acodec1" == "ac3" ] || [ "$orig_acodec1" == "aac" ]; then
+	if [ "$orig_acodec1" == "eac3" ] || [ "$orig_acodec1" == "ac3" ]; then
 		amaps="-map 0:a:0"
 		aopts="-c:a copy"
 
-	# if no second audio track, encode the first one
-	# TODO: figuring out truehd compatibility fallback
+	# if first codec is truehd, there is probably a compatability track to copy
+	elif [ "$orig_acodec1" == "truehd" ]; then
+		if [ "$orig_acodec2" == "eac3" ] || [ "$orig_acodec2" == "ac3" ]; then
+			# yay, compatability track, copy that!
+			amaps="-map 0:a:1"
+			aopts="-c:a copy"
+		else
+			# no compatablity track, give in a transcode truehd
+			amaps="-map 0:a:0"
+			aopts="$surround_aopts"
+		fi
+
+	# if we got here the audio is probably DTS or AAC, in either case transcode
 	elif [ "$orig_achan1" == "2" ] || [ "$orig_achan1" == "3" ]; then
 		amaps="-map 0:a:0"
 		aopts="-c:a eac3 -b:a 192k"
@@ -1000,9 +1013,14 @@ run_full_auto () {
 	# if dvd subs, ocr those
 	elif [ "$orig_scodec1" == "dvd_subtitle" ]; then
 		ocr_mode="dvd"
-	# if bluray subs, ocr those
+	# if bluray subs, there is a chance of forced track, so check
 	elif [ "$orig_scodec1" == "hdmv_pgs_subtitle" ]; then
-		ocr_mode="bluray"
+		if [ "$orig_sforced1" == "1" ]; then
+			echo "ERROR, detected forced subs, don't know how to handle this yet"
+			exit
+		else
+			ocr_mode="bluray"
+		fi
 	else
 		echo "unknown subtitle format: $orig_scodec1"
 		exit 1
