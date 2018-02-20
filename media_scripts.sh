@@ -417,19 +417,23 @@ main () {
 		select opt in "auto" "keep_first" "keep_second" "keep_all" "none"; do
 		case $opt in
 		auto)
-			autosubs=true;
+			autosubs=true
 			break;;
 		keep_all )
 			smaps="-map 0:s"
+			autosubs=false
 			break;;
 		keep_first )
 			smaps="-map 0:s:0"
+			autosubs=false
 			break;;
 		keep_second )
 			smaps="-map 0:s:1"
+			autosubs=false
 			break;;
 		none )
 			smaps=""
+			autosubs=false
 			break;;
 		*)
 			echo "invalid option"
