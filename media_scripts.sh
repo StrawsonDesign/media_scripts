@@ -581,11 +581,11 @@ run_ffmpeg () {
 
 	# construct ffmpeg command depending on mode
 	if [ "$twopass" == "x264" ]; then
-		local command1="nice -n 19 ffmpeg -y $verbosity $ins $other_opts $maps $vopts $vprofile -pass 1 -passlogfile \"/tmp/$fname\" $lopts $filters $aopts $sopts $metadata -f $format /dev/null"
-		local command2="nice -n 19 ffmpeg -n $verbosity $ins $other_opts $maps $vopts $vprofile -pass 2 -passlogfile \"/tmp/$fname\" $lopts $filters $aopts $sopts $metadata \"$outfull\""
+		local command1="nice -n 19 ffmpeg -y -an -sn $verbosity $ins $other_opts $vmaps $vopts $vprofile -pass 1 -passlogfile \"/tmp/$fname\" $lopts $filters -f $format /dev/null"
+		local command2="nice -n 19 ffmpeg -n         $verbosity $ins $other_opts $maps  $vopts $vprofile -pass 2 -passlogfile \"/tmp/$fname\" $lopts $filters $aopts $sopts $metadata \"$outfull\""
 	elif [ "$twopass" == "x265" ]; then
-		local command1="nice -n 19 ffmpeg -y $verbosity $ins $other_opts $maps $vopts:pass=1:stats=\"/tmp/$fname\" $aopts -f $format /dev/null"
-		local command2="nice -n 19 ffmpeg -n $verbosity $ins $other_opts $maps $vopts:pass=2:stats=\"/tmp/$fname\" $lopts $filters $aopts $sopts $metadata \"$outfull\""
+		local command1="nice -n 19 ffmpeg -y -an -sn $verbosity $ins $other_opts $vmaps $vopts:pass=1:stats=\"/tmp/$fname\" $lopts $filters -f $format /dev/null"
+		local command2="nice -n 19 ffmpeg -n         $verbosity $ins $other_opts $maps  $vopts:pass=2:stats=\"/tmp/$fname\" $lopts $filters $aopts $sopts $metadata \"$outfull\""
 	elif [ "$twopass" == "none" ]; then
 		local command1="nice -n 19 ffmpeg -n $verbosity $ins $other_opts $maps $vopts $vprofile $lopts $filters $aopts $sopts $metadata \"$outfull\""
 	else
