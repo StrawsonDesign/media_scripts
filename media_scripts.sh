@@ -266,7 +266,7 @@ main () {
 		# ask video codec question
 		echo " "
 		echo "Which Video codec to use?"
-		select opt in "x264_2pass_10M" "x264_2pass_7M" "x264_2pass_3M" "x264_2pass_1.5M" "x264_rf18" "x264_rf20"  "x265_2pass_30M_5.0" "x265_rf21" "copy"; do
+		select opt in "x264_2pass_10M" "x264_2pass_7M" "x264_2pass_2M" "x264_2pass_1M" "x264_rf18" "x264_rf20"  "x265_2pass_30M_5.0" "x265_rf21" "copy"; do
 		case $opt in
 		copy )
 			vcopy="true"
@@ -284,15 +284,15 @@ main () {
 			using_libx264=true;
 			twopass="x264";
 			break;;
-		x264_2pass_3M )
-			vopts="-c:v libx264 -preset slow -b:v 3000k"
-			vprofile="-profile:v baseline -level 3.1"
+		x264_2pass_2M )
+			vopts="-c:v libx264 -preset slow -b:v 2000k"
+			vprofile="$dvd_vprofile"
 			using_libx264=true;
 			twopass="x264";
 			break;;
-		x264_2pass_1.5M )
-			vopts="-c:v libx264 -preset slow -b:v 1500k"
-			vprofile="$dvd_profile"
+		x264_2pass_1M )
+			vopts="-c:v libx264 -preset slow -b:v 1000k"
+			vprofile="$dvd_vprofile"
 			using_libx264=true;
 			twopass="x264";
 			break;;
