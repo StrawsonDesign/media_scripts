@@ -390,16 +390,13 @@ main () {
 		# ask audio codec question
 		echo " "
 		echo "Which audio codec to use?"
-		select opt in "eac3_5.1" "eac3_2.0" "aac_2.0" "copy"; do
+		select opt in "eac3_5.1" "eac3_2.0" "copy"; do
 		case $opt in
 		eac3_5.1 )
 			aopts="$surround_aopts"
 			break;;
 		eac3_2.0 )
 			aopts="$stereo_aopts"
-			break;;
-		aac_2.0 )
-			aopts="-c:a aac -b:a 192k -filter:a loudnorm"
 			break;;
 		copy )
 			aopts="-c:a copy"
@@ -874,12 +871,18 @@ run_full_auto () {
 	local orig_width=`ffprobe -i "$ffull" -v error -of default=noprint_wrappers=1:nokey=1 -select_streams v:0 -show_entries stream=width`
 	local orig_field_order=`ffprobe -i "$ffull" -v error -of default=noprint_wrappers=1:nokey=1 -select_streams v:0 -show_entries stream=field_order`
 	local orig_vbr=`ffprobe -i "$ffull" -v error -of default=noprint_wrappers=1:nokey=1 -select_streams v:0 -show_entries format=bit_rate`
-	local orig_acodec1=`ffprobe -i "$ffull" -v error -of default=noprint_wrappers=1:nokey=1 -select_streams a:0 -show_entries stream=codec_name`
-	local orig_achan1=`ffprobe -i "$ffull" -v error -of default=noprint_wrappers=1:nokey=1 -select_streams a:0 -show_entries stream=channels`
-	local orig_scodec1=`ffprobe -i "$ffull" -v error -of default=noprint_wrappers=1:nokey=1 -select_streams s:0 -show_entries stream=codec_name`
 
+	local orig_acodec1=`ffprobe -i "$ffull" -v error -of default=noprint_wrappers=1:nokey=1 -select_streams a:0 -show_entries stream=codec_name`
 	local orig_acodec2=`ffprobe -i "$ffull" -v error -of default=noprint_wrappers=1:nokey=1 -select_streams a:1 -show_entries stream=codec_name`
+	local orig_alang1=`ffprobe -i "$ffull" -v error -of default=noprint_wrappers=1:nokey=1 -select_streams a:0 -show_entries stream_tags=language`
+	local orig_alang2=`ffprobe -i "$ffull" -v error -of default=noprint_wrappers=1:nokey=1 -select_streams a:1 -show_entries stream_tags=language`
+	local orig_achan1=`ffprobe -i "$ffull" -v error -of default=noprint_wrappers=1:nokey=1 -select_streams a:0 -show_entries stream=channels`
+
+
+	local orig_scodec1=`ffprobe -i "$ffull" -v error -of default=noprint_wrappers=1:nokey=1 -select_streams s:0 -show_entries stream=codec_name`
 	local orig_scodec2=`ffprobe -i "$ffull" -v error -of default=noprint_wrappers=1:nokey=1 -select_streams s:1 -show_entries stream=codec_name`
+	local orig_slang1=`ffprobe -i "$ffull" -v error -of default=noprint_wrappers=1:nokey=1 -select_streams s:0 -show_entries stream_tags=language`
+	local orig_slang2=`ffprobe -i "$ffull" -v error -of default=noprint_wrappers=1:nokey=1 -select_streams s:1 -show_entries stream_tags=language`
 	local orig_sforced1=`ffprobe -i "$ffull" -v error -of default=noprint_wrappers=1:nokey=1 -select_streams s:1 -show_entries disposition=forced`
 
 	if [ "$orig_scodec1" == "" ]; then orig_scodec1="none"; fi
@@ -907,9 +910,13 @@ run_full_auto () {
 		echo "bitrate: $(("$orig_vbr"/1000000)) Mb/s"
 		echo "acodec1: $orig_acodec1"
 		echo "acodec2: $orig_acodec2"
+		echo "alang1: $orig_alang1"
+		echo "alang2: $orig_alang2"
 		echo "achannels1: $orig_achan1"
 		echo "scodec1: $orig_scodec1"
 		echo "scodec2: $orig_scodec2"
+		echo "slang1: $orig_slang1"
+		echo "slang2: $orig_slang2"
 		echo "sforced1: $orig_sforced1"
 		echo ""
 	fi
@@ -924,6 +931,7 @@ run_full_auto () {
 	amaps="-map 0:a:0"
 	auto_subs=true
 	ocr_mode="none"
+	which_ocr=""
 
 	#################################################################
 	## figure out what to do with video stream here
@@ -997,42 +1005,78 @@ run_full_auto () {
 		fi
 
 	# if we got here the audio is probably DTS or AAC, in either case transcode
-	elif [ "$orig_achan1" == "2" ] || [ "$orig_achan1" == "3" ]; then
+	# after selecting right language
+	elif [ "$orig_alang1" == "eng" ] || [ "$orig_alang1" == "" ]; then
 		amaps="-map 0:a:0"
-		aopts="-c:a eac3 -b:a 192k"
-	else
-		amaps="-map 0:a:0"
+		if [ "$orig_achan1" == "2" ] || [ "$orig_achan1" == "3" ]; then
+			aopts="$stereo_aopts"
+		else
+			aopts="$surround_aopts"
+		fi
+	elif [ "$orig_alang2" == "eng" ]; then
+		amaps="-map 0:a:1"
 		aopts="$surround_aopts"
+	else
+		echo "ERROR can't find english audio track"
+		exit 1
 	fi
-
 
 	# now decide subtitles
 	# if srt already placed manually, use that
 	if [ -f "$fpath.srt" ]; then
 		ocr_mode="none"
-	elif [ $orig_scodec1 == "none" ]; then
+	elif [ "$orig_scodec1" == "none" ]; then
 		echo "ERROR, no subs found for $fname"
 		exit 1
-	# if embedded subs are text formatted, use that
-	elif [ "$orig_scodec1" == "subrip" ] || [ "$orig_scodec1" == "ass" ]; then
-		ocr_mode="none"
-		auto_subs=false
-		smaps="-map 0:s:0"
-		sopts="-c:s srt"
-	# if dvd subs, ocr those
-	elif [ "$orig_scodec1" == "dvd_subtitle" ]; then
-		ocr_mode="dvd"
-	# if bluray subs, there is a chance of forced track, so check
-	elif [ "$orig_scodec1" == "hdmv_pgs_subtitle" ]; then
-		if [ "$orig_sforced1" == "1" ]; then
-			echo "ERROR, detected forced subs, don't know how to handle this yet"
-			exit
-		else
-			ocr_mode="bluray"
-		fi
-	else
-		echo "unknown subtitle format: $orig_scodec1"
+	elif [ "$orig_sforced1" == "1" ]; then
+		echo "ERROR, detected forced subs, don't know how to handle this yet"
 		exit 1
+	else
+		# english subs found in ch 1
+		if [ "$orig_slang1" == "eng" ] || [ "$orig_slang1" == "" ]; then
+			# if embedded subs are text formatted, use that
+			if [ "$orig_scodec1" == "subrip" ] || [ "$orig_scodec1" == "ass" ]; then
+				ocr_mode="none"
+				auto_subs=false
+				smaps="-map 0:s:0"
+				sopts="-c:s srt"
+			# if dvd subs, ocr those
+			elif [ "$orig_scodec1" == "dvd_subtitle" ]; then
+				ocr_mode="dvd"
+				which_ocr="1"
+			# if bluray subs, there is a chance of forced track, so check
+			elif [ "$orig_scodec1" == "hdmv_pgs_subtitle" ]; then
+				ocr_mode="bluray"
+				which_ocr="1"
+			else
+				echo "unknown subtitle format: $orig_scodec1"
+				exit 1
+			fi
+
+		elif [ "$orig_slang2" == "eng" ]; then
+			# if embedded subs are text formatted, use that
+			if [ "$orig_scodec2" == "subrip" ] || [ "$orig_scodec2" == "ass" ]; then
+				ocr_mode="none"
+				auto_subs=false
+				smaps="-map 0:s:1"
+				sopts="-c:s srt"
+			# if dvd subs, ocr those
+			elif [ "$orig_scodec2" == "dvd_subtitle" ]; then
+				ocr_mode="dvd"
+				which_ocr="2"
+			# if bluray subs, there is a chance of forced track, so check
+			elif [ "$orig_scodec2" == "hdmv_pgs_subtitle" ]; then
+				ocr_mode="bluray"
+				which_ocr="2"
+			else
+				echo "unknown subtitle format: $orig_scodec1"
+				exit 1
+			fi
+		else
+			echo "ERROR can't find english subs"
+			exit 1
+		fi
+
 	fi
 
 	## print info in preview mode
@@ -1046,17 +1090,18 @@ run_full_auto () {
 		echo "amaps: $amaps"
 		echo "smaps: $smaps"
 		echo "ocr_mode: $ocr_mode"
+		echo "which_ocr: $which_ocr"
 		echo ""
 	fi
 
 	## now process video with auto configure settings!
 	# start with OCR if needed, start by extracing the sub
 	if [ "$ocr_mode" == "dvd" ]; then
-		run_mkvextract "1"
+		run_mkvextract "$which_ocr"
 		run_vobsub2srt
 	# for bluray subs need to convert to dvd idx format for ocr
 	elif [ "$ocr_mode" == "bluray" ]; then
-		run_mkvextract "1"
+		run_mkvextract "$which_ocr"
 		run_bdsup2sub
 		run_vobsub2srt
 	fi
