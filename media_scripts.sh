@@ -205,8 +205,8 @@ main () {
 		amaps="-map 0:a"
 		aopts="-c:a copy"
 		autosubs=false
-		smaps="-map 0:s"
-		sopts="-c:s srt"
+		smaps="-map 0:s\?"
+		sopts="-c:s copy"
 		mode="ffmpeg_preset"
 		;;
 	7) # custom mkv
@@ -266,48 +266,55 @@ main () {
 		# ask video codec question
 		echo " "
 		echo "Which Video codec to use?"
-		select opt in "x264_2pass_10M" "x264_2pass_7M" "x264_2pass_3M" "x264_2pass_1M" "x264_rf18" "x264_rf20"  "x265_2pass_30M_5.0" "x265_rf21" "copy"; do
+		select opt in "x264_2pass_10M_L4.0" "x264_2pass_7M_L4.0" "x264_2pass_4M_L4.0" "x264_2pass_3M_L3.0" "x264_2pass_1M_L3.0" "x264_rf18_L4.0" "x264_rf20_L4.0" "x265_2pass_30M_L5.0" "x265_rf21" "copy"; do
 		case $opt in
 		copy )
 			vcopy="true"
 			vopts="-c:v copy"
 			break;;
-		x264_2pass_10M )
+		x264_2pass_10M_L4.0 )
 			vopts="-c:v libx264 -preset slow -b:v 10000k"
 			vprofile="$br_vprofile"
 			using_libx264=true;
 			twopass="x264";
 			break;;
-		x264_2pass_7M )
+		x264_2pass_7M_L4.0 )
 			vopts="-c:v libx264 -preset slow -b:v 7000k"
 			vprofile="$br_vprofile"
 			using_libx264=true;
 			twopass="x264";
 			break;;
-		x264_2pass_3M )
+		x264_2pass_4M_L4.0 )
+			vopts="-c:v libx264 -preset slow -b:v 4000k"
+			vprofile="$br_vprofile"
+			using_libx264=true;
+			twopass="x264";
+			break;;
+		x264_2pass_3M_L3.0 )
 			vopts="$dvd_vopts"
 			vprofile="$dvd_vprofile"
 			using_libx264=true;
 			twopass="x264";
 			break;;
-		x264_2pass_1M )
+		x264_2pass_1M_L3.0 )
 			vopts="-c:v libx264 -preset slow -b:v 1000k"
 			vprofile="$dvd_vprofile"
 			using_libx264=true;
 			twopass="x264";
 			break;;
-		x264_rf18 )
+		x264_rf18_L4.0 )
 			vopts="-c:v libx264 -preset slow -crf 18"
 			vprofile="$br_vprofile"
 			using_libx264=true;
 			break;;
-		x264_rf20 )
+		x264_rf20_L4.0 )
 			vopts="-c:v libx264 -preset slow -crf 20"
 			vprofile="$br_vprofile"
 			using_libx264=true;
 			break;;
-		x265_2pass_30M_5.0 )
+		x265_2pass_30M_L5.0 )
 			vopts="-c:v libx265 -preset slow -b:v 30000k -x265-params profile=main10:level=5.0:high-tier=1"
+			vprofile=""
 			twopass="x265";
 			break;;
 		x265_rf21 )
@@ -471,11 +478,14 @@ main () {
 		select opt in "preview" "run_now" "run_verbose"; do
 		case $opt in
 		preview )
+			verbose_mode=""
 			preview=true
 			break;;
 		run_now )
+			verbose_mode=""
 			break;;
 		run_verbose )
+			verbose_mode="1"
 			verbosity="-stats"
 			vobsub_flags="$vobsub_flags --verbose"
 			break;;
@@ -604,6 +614,11 @@ run_ffmpeg () {
 		time_start_ffmpeg=$(date +%s)
 		## single pass execution
 		if [ "$twopass" == "none" ]; then
+
+			if [ "$verbose_mode" == "1" ]; then
+				echo "$command1"
+				echo ""
+			fi
 			if eval "$command1"; then
 				echo "success!"
 				echo " "
@@ -615,6 +630,10 @@ run_ffmpeg () {
 			fi
 		else
 			echo "starting pass 1 of 2"
+			if [ "$verbose_mode" == "1" ]; then
+				echo "$command1"
+				echo ""
+			fi
 			if eval "$command1"; then
 				echo "finished pass 1"
 			else
@@ -624,6 +643,10 @@ run_ffmpeg () {
 				exit 1
 			fi
 			echo "starting pass 2 of 2"
+			if [ "$verbose_mode" == "1" ]; then
+				echo "$command2"
+				echo ""
+			fi
 			if eval "$command2"; then
 				# finished, remove log file
 				rm "/tmp/$fname"*
