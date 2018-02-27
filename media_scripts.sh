@@ -969,13 +969,10 @@ run_full_auto () {
 			vopts="$br_vopts"
 			vprofile="$br_vprofile"
 			twopass="x264"
-		elif [ "$orig_width" == "720" ]; then
-			vopts="$dvd_vopts"
-			vprofile="$dvd_vprofile"
-			twopass="x264"
 		else
-			echo "ERROR, don't know how to handle video width: $orig_width"
-			exit 1
+			vopts="-c:v copy"
+			vprofile=""
+			twopass="none"
 		fi
 	fi
 
