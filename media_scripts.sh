@@ -19,7 +19,7 @@ br_vopts="-c:v libx264 -preset slow -b:v 10M"
 br_vprofile="-profile:v high -level 4.0"
 br_twopass="x264"
 # dvd video
-dvd_vopts="-c:v libx264 -preset slow -b:v 2M"
+dvd_vopts="-c:v libx264 -preset slow -b:v 3M"
 dvd_vprofile="-profile:v baseline -level 3.0"
 dvd_twopass="x264"
 # audio presets
@@ -135,7 +135,7 @@ main () {
 	echo "2) Copy Video & Encode Audio1 as 5.1 EAC3"
 	echo "3) 2-pass 10M x264 & Encode Audio1 as 5.1 EAC3 (BR medium preset)"
 	echo "4) 2-pass 7M  x264 & Encode Audio1 as 5.1 EAC3 (BR low preset)"
-	echo "5) 2-pass 2M  x264 deinterlace & Copy Audio1 (DVD preset)"
+	echo "5) 2-pass 3M  x264 deinterlace & Copy Audio1 (DVD preset)"
 	echo "6) remux mp4 to mkv"
 	echo "7) custom mkv"
 	echo "8) custom mp4"
@@ -190,7 +190,7 @@ main () {
 		aopts="$surround_aopts"
 		mode="ffmpeg_preset"
 		;;
-	5) # 2-pass 2M  x264 deinterlace & Copy Audio1 (DVD medium)
+	5) # 2-pass 3M  x264 deinterlace & Copy Audio1 (DVD medium)
 		vopts="$dvd_vopts"
 		filters="-vf \"bwdif\""
 		vprofile="$dvd_profile"
@@ -266,7 +266,7 @@ main () {
 		# ask video codec question
 		echo " "
 		echo "Which Video codec to use?"
-		select opt in "x264_2pass_10M" "x264_2pass_7M" "x264_2pass_2M" "x264_2pass_1M" "x264_rf18" "x264_rf20"  "x265_2pass_30M_5.0" "x265_rf21" "copy"; do
+		select opt in "x264_2pass_10M" "x264_2pass_7M" "x264_2pass_3M" "x264_2pass_1M" "x264_rf18" "x264_rf20"  "x265_2pass_30M_5.0" "x265_rf21" "copy"; do
 		case $opt in
 		copy )
 			vcopy="true"
@@ -284,8 +284,8 @@ main () {
 			using_libx264=true;
 			twopass="x264";
 			break;;
-		x264_2pass_2M )
-			vopts="-c:v libx264 -preset slow -b:v 2000k"
+		x264_2pass_3M )
+			vopts="$dvd_vopts"
 			vprofile="$dvd_vprofile"
 			using_libx264=true;
 			twopass="x264";
@@ -323,10 +323,9 @@ main () {
 			# ask delinterlacing filter question
 			echo " "
 			echo "use videofilter?"
-			echo "bwdif is a better deinterlacing filter but only works on newer ffmpeg"
 			echo "cropping takes off 2 pixels from top and bottom which removes"
 			echo "some interlacing artifacts from old dvds"
-			select opt in "none" "scale_to_1080" "scale_to_720" "w3fdif" "w3fdif_crop" "bwdif" "bwdif_crop" "hflip"; do
+			select opt in "none" "scale_to_1080" "scale_to_720" "deinterlace" "deinterlace_crop" "hflip"; do
 			case $opt in
 			none )
 				filters=""
@@ -337,16 +336,10 @@ main () {
 			scale_to_720 )
 				filters="-vf scale=1280:-1"
 				break;;
-			w3fdif )
-				filters="-vf \"w3fdif\""
-				break;;
-			w3fdif_crop )
-				filters="-vf \"crop=in_w:in_h-4:0:2, w3fdif\""
-				break;;
-			bwdif )
+			deinterlace )
 				filters="-vf \"bwdif\""
 				break;;
-			bwdif_crop )
+			deinterlace_crop )
 				filters="-vf \"crop=in_w:in_h-4:0:2, bwdif\""
 				break;;
 			hflip )
