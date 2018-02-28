@@ -12,8 +12,9 @@ NOCOLOUR='\033[0m' # No Color
 
 ## common presets
 # 4k preset
-vopts="-c:v libx265 -preset slow -b:v 30000k -x265-params profile=main10:level=5.0:high-tier=1"
-twopass="x265";
+4k_vopts="-c:v libx265 -preset slow -b:v 30000k -x265-params profile=main10:level=5.0:high-tier=1"
+4k_vprofile=""
+4k_twopass="x265";
 #bluray video
 br_vopts="-c:v libx264 -preset slow -b:v 10M"
 br_vprofile="-profile:v high -level 4.0"
@@ -956,25 +957,39 @@ run_full_auto () {
 	## otherwise pick bitrate by resolution
 	#################################################################
 
-	## catch videos larger than 1920x1080
-	## these videos should be dealt with manually for now
-	if [ "$orig_width" -gt "1920" ]; then
-		echo "ERROR with $fname"
-		echo "Videos wider than 1920 not supported in Auto mode"
-		exit 1
-	fi
+	# ## catch videos larger than 1920x1080
+	# ## these videos should be dealt with manually for now
+	# if [ "$orig_width" -gt "1920" ]; then
+	# 	echo "ERROR with $fname"
+	# 	echo "Videos wider than 1920 not supported in Auto mode"
+	# 	exit 1
+	# fi
 
-	## catch h265
-	## these videos should be dealt with manually for now
-	if [ "$orig_vcodec" == "h265" ]; then
-		echo "ERROR with $fname"
-		echo "x265 video not supported in auto mode"
-		exit 1
-	fi
+	# ## catch h265
+	# ## these videos should be dealt with manually for now
+	# if [ "$orig_vcodec" == "h265" ]; then
+	# 	echo "ERROR with $fname"
+	# 	echo "x265 video not supported in auto mode"
+	# 	exit 1
+	# fi
 
 	## copying video is ideal, but most restrictive conditions so check first
 	if [ "$interlaced" == "false" ] && [ "$orig_vcodec" == "h264"   ] && \
 	   [ "$orig_width" == "1920"  ] && [ "$orig_vbr" -le "14000000" ]; then
+		vopts="-c:v copy"
+		vprofile=""
+		twopass="none"
+
+	# copy h265 4k video
+	elif [ "$interlaced" == "false" ] && [ "$orig_vcodec" == "h265"   ] && \
+	     [ "$orig_width" == "3840"  ] && [ "$orig_vbr" -le "40000000" ]; then
+		vopts="-c:v copy"
+		vprofile=""
+		twopass="none"
+
+	# copy dvd video
+	elif [ "$interlaced" == "false" ] && [ "$orig_vcodec" == "h264"   ] && \
+	     [ "$orig_width" == "720"  ] && [ "$orig_vbr" -le "6000000" ]; then
 		vopts="-c:v copy"
 		vprofile=""
 		twopass="none"
@@ -988,14 +1003,31 @@ run_full_auto () {
 		fi
 
 		# now set bitrate and profile by resolution for BR and DVD
-		if [ "$orig_width" == "1920" ]; then
+		if [ "$orig_width" -gt "3800" ]; then
+			vopts="$4k_vopts"
+			vprofile="$4k_vprofile"
+			twopass="$4k_twopass"
+		# something weird between BR and 4k
+		elif [ "$orig_width" -gt "1920" ]; then
+			echo "don't know how to handle video width $orig_width"
+			exit 1
+		# bluray
+		elif [ "$orig_width" -gt "1910" ]; then
 			vopts="$br_vopts"
 			vprofile="$br_vprofile"
-			twopass="x264"
+			twopass="$br_twopass"
+		# something weird between dvd and 4k
+		elif [ "$orig_width" -gt "720" ]; then
+			echo "don't know how to handle video width $orig_width"
+			exit 1
+		# dvd
+		elif [ "$orig_width" -gt "700" ]; then
+			vopts="$dvd_vopts"
+			vprofile="$dvd_vprofile"
+			twopass="$dvd_twopass"
 		else
-			vopts="-c:v copy"
-			vprofile=""
-			twopass="none"
+			echo "don't know how to handle video width $orig_width"
+			exit 1
 		fi
 	fi
 
