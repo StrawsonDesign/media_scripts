@@ -12,9 +12,9 @@ NOCOLOUR='\033[0m' # No Color
 
 ## common presets
 # 4k preset
-4k_vopts="-c:v libx265 -preset slow -b:v 30000k -x265-params profile=main10:level=5.0:high-tier=1"
-4k_vprofile=""
-4k_twopass="x265";
+uhd_vopts="-c:v libx265 -preset slow -b:v 30000k -x265-params profile=main10:level=5.0:high-tier=1"
+uhd_vprofile=""
+uhd_twopass="x265";
 #bluray video
 br_vopts="-c:v libx264 -preset slow -b:v 10M"
 br_vprofile="-profile:v high -level 4.0"
@@ -909,9 +909,12 @@ run_full_auto () {
 
 	#decide interlace mode
 	if [ "$orig_field_order" == "tt" ] || [ "$orig_field_order" == "bb" ]; then
-		interlaced=true;
+		interlaced=true
 	elif [ "$orig_field_order" == "progressive" ]; then
-		interlaced=false;
+		interlaced=false
+	# HEVC video shows as 'unknown but is really progressive
+	elif [ "$orig_vcodec" == "hevc" ]; then
+		interlaced=flase
 	else
 		echo "ERROR unknown field order: $orig_field_order"
 		echo "cant determine interlace mode"
@@ -981,7 +984,7 @@ run_full_auto () {
 		twopass="none"
 
 	# copy h265 4k video
-	elif [ "$interlaced" == "false" ] && [ "$orig_vcodec" == "h265"   ] && \
+	elif [ "$interlaced" == "false" ] && [ "$orig_vcodec" == "hevc"   ] && \
 	     [ "$orig_width" == "3840"  ] && [ "$orig_vbr" -le "40000000" ]; then
 		vopts="-c:v copy"
 		vprofile=""
@@ -1004,9 +1007,9 @@ run_full_auto () {
 
 		# now set bitrate and profile by resolution for BR and DVD
 		if [ "$orig_width" -gt "3800" ]; then
-			vopts="$4k_vopts"
-			vprofile="$4k_vprofile"
-			twopass="$4k_twopass"
+			vopts="$uhd_vopts"
+			vprofile="$uhd_vprofile"
+			twopass="$uhd_twopass"
 		# something weird between BR and 4k
 		elif [ "$orig_width" -gt "1920" ]; then
 			echo "don't know how to handle video width $orig_width"
