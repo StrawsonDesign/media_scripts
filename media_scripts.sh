@@ -894,6 +894,7 @@ run_full_auto () {
 	local orig_alang1=`ffprobe -i "$ffull" -v error -of default=noprint_wrappers=1:nokey=1 -select_streams a:0 -show_entries stream_tags=language`
 	local orig_alang2=`ffprobe -i "$ffull" -v error -of default=noprint_wrappers=1:nokey=1 -select_streams a:1 -show_entries stream_tags=language`
 	local orig_achan1=`ffprobe -i "$ffull" -v error -of default=noprint_wrappers=1:nokey=1 -select_streams a:0 -show_entries stream=channels`
+	local orig_achan2=`ffprobe -i "$ffull" -v error -of default=noprint_wrappers=1:nokey=1 -select_streams a:1 -show_entries stream=channels`
 
 
 	local orig_scodec1=`ffprobe -i "$ffull" -v error -of default=noprint_wrappers=1:nokey=1 -select_streams s:0 -show_entries stream=codec_name`
@@ -953,30 +954,8 @@ run_full_auto () {
 	ocr_mode="none"
 	which_ocr=""
 
-	#################################################################
 	## figure out what to do with video stream here
-	## first throw errors for conditions we can't handle yet
-	## then check if video can be copied
-	## otherwise pick bitrate by resolution
-	#################################################################
-
-	# ## catch videos larger than 1920x1080
-	# ## these videos should be dealt with manually for now
-	# if [ "$orig_width" -gt "1920" ]; then
-	# 	echo "ERROR with $fname"
-	# 	echo "Videos wider than 1920 not supported in Auto mode"
-	# 	exit 1
-	# fi
-
-	# ## catch h265
-	# ## these videos should be dealt with manually for now
-	# if [ "$orig_vcodec" == "h265" ]; then
-	# 	echo "ERROR with $fname"
-	# 	echo "x265 video not supported in auto mode"
-	# 	exit 1
-	# fi
-
-	## copying video is ideal, but most restrictive conditions so check first
+	# copying video is ideal, but most restrictive conditions so check first
 	if [ "$interlaced" == "false" ] && [ "$orig_vcodec" == "h264"   ] && \
 	   [ "$orig_width" == "1920"  ] && [ "$orig_vbr" -le "14000000" ]; then
 		vopts="-c:v copy"
@@ -1035,8 +1014,12 @@ run_full_auto () {
 	fi
 
 	## now to decide audio
-	# if already aac, ac3, or eac3, just copy
-	if [ "$orig_acodec1" == "eac3" ] || [ "$orig_acodec1" == "ac3" ]; then
+	# if only one track that's already ac3, or eac3, just copy
+	if [ "$orig_acodec1" == "eac3" ] && [ "orig_acodec2" == "none" ]; then
+		amaps="-map 0:a:0"
+		aopts="-c:a copy"
+
+	elif [ "$orig_acodec1" == "ac3" ] && [ "$orig_acodec2" == "none" ]; then
 		amaps="-map 0:a:0"
 		aopts="-c:a copy"
 
@@ -1054,16 +1037,20 @@ run_full_auto () {
 
 	# if we got here the audio is probably DTS or AAC, in either case transcode
 	# after selecting right language
-	elif [ "$orig_alang1" == "eng" ] || [ "$orig_alang1" == "" ]; then
+	elif [ "$orig_alang1" == "eng" ] || [ "$orig_alang1" == "" ] || [ "$orig_alang1" == "und" ]; then
 		amaps="-map 0:a:0"
-		if [ "$orig_achan1" == "2" ] || [ "$orig_achan1" == "3" ]; then
+		if [ "$orig_achan1" == "1" ] || [ "$orig_achan1" == "2" ] || [ "$orig_achan1" == "3" ]; then
 			aopts="$stereo_aopts"
 		else
 			aopts="$surround_aopts"
 		fi
 	elif [ "$orig_alang2" == "eng" ]; then
 		amaps="-map 0:a:1"
-		aopts="$surround_aopts"
+		if [ "$orig_achan2" == "1" ] || [ "$orig_achan2" == "2" ] || [ "$orig_achan2" == "3" ]; then
+			aopts="$stereo_aopts"
+		else
+			aopts="$surround_aopts"
+		fi
 	else
 		echo "ERROR can't find english audio track"
 		exit 1
@@ -1081,7 +1068,7 @@ run_full_auto () {
 		exit 1
 	else
 		# english subs found in ch 1
-		if [ "$orig_slang1" == "eng" ] || [ "$orig_slang1" == "" ]; then
+		if [ "$orig_slang1" == "eng" ] || [ "$orig_slang1" == "" ] || [ "$orig_slang1" == "und" ]; then
 			# if embedded subs are text formatted, use that
 			if [ "$orig_scodec1" == "subrip" ] || [ "$orig_scodec1" == "ass" ]; then
 				ocr_mode="none"
