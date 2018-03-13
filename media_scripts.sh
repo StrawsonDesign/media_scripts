@@ -12,7 +12,7 @@ NOCOLOUR='\033[0m' # No Color
 
 ## common presets
 # 4k preset
-uhd_vopts="-c:v libx265 -preset slow -b:v 30000k -x265-params profile=main10:level=5.0:high-tier=1"
+uhd_vopts="-c:v libx265 -preset medium -b:v 34000k -x265-params profile=main10:level=5.0:high-tier=0"
 uhd_vprofile=""
 uhd_twopass="x265";
 #bluray video
@@ -267,7 +267,7 @@ main () {
 		# ask video codec question
 		echo " "
 		echo "Which Video codec to use?"
-		select opt in "x264_2pass_10M_L4.0" "x264_2pass_7M_L4.0" "x264_2pass_4M_L4.0" "x264_2pass_3M_L3.0" "x264_2pass_1M_L3.0" "x264_rf18_L4.0" "x264_rf20_L4.0" "x265_2pass_30M_L5.0" "x265_rf21" "copy"; do
+		select opt in "x264_2pass_10M_L4.0" "x264_2pass_7M_L4.0" "x264_2pass_4M_L4.0" "x264_2pass_3M_L3.0" "x264_2pass_1M_L3.0" "x264_rf18_L4.0" "x264_rf20_L4.0" "x265_2pass_4k_default" "x265_rf21" "copy"; do
 		case $opt in
 		copy )
 			vcopy="true"
@@ -313,9 +313,9 @@ main () {
 			vprofile="$br_vprofile"
 			using_libx264=true;
 			break;;
-		x265_2pass_30M_L5.0 )
-			vopts="-c:v libx265 -preset slow -b:v 30000k -x265-params profile=main10:level=5.0:high-tier=1"
-			vprofile=""
+		x265_2pass_4k_default )
+			vopts="$uhd_vopts"
+			vprofile="$uhd_vprofile"
 			twopass="x265";
 			break;;
 		x265_rf21 )
