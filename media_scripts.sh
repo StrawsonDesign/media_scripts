@@ -33,8 +33,7 @@ deinterlace_filter="-vf \"bwdif\""
 vmaps="-map 0:v:0"
 verbosity="-hide_banner -v fatal -stats"
 vobsub_flags="--lang en" # use english language for OCR
-# assume subtitle language is english for now
-sub_metadata="-metadata:s:s:0 Title=\"English\" -metadata:s:s:0 language=eng"
+sub_metadata=""
 # erase stupid video metadata set by scene groups
 video_metadata="-metadata:s:v:0 Title=\"Track 1\""
 audio_metadata="-metadata:s:a:0 Title=\"Track 1\""
@@ -132,48 +131,58 @@ main () {
 	echo "what do you want to do?"
 	echo " "
 	echo "FFMPEG options, all auto-embed SRT subtitles if available:"
-	echo "1) Copy Video & Copy Audio1 (embed srt subtitle)"
-	echo "2) Copy Video & Encode Audio1 as 5.1 EAC3"
-	echo "3) 2-pass 10M x264 & Encode Audio1 as 5.1 EAC3 (BR medium preset)"
-	echo "4) 2-pass 7M  x264 & Encode Audio1 as 5.1 EAC3 (BR low preset)"
-	echo "5) 2-pass 3M  x264 deinterlace & Copy Audio1 (DVD preset)"
-	echo "6) remux mp4 to mkv"
-	echo "7) custom mkv"
-	echo "8) custom mp4"
+	echo "1) FULL AUTO (experimental)"
+	echo "2) custom mkv"
+	echo " "
+	echo "3) Copy Video & Copy Audio1 (embed srt subtitle)"
+	echo "4) Copy Video & Encode Audio1 as 5.1 EAC3"
+	echo "5) 2-pass 10M x264 & Encode Audio1 as 5.1 EAC3 (BR medium preset)"
+	echo "6) 2-pass 7M  x264 & Encode Audio1 as 5.1 EAC3 (BR low preset)"
+	echo "7) 2-pass 3M  x264 deinterlace & Copy Audio1 (DVD preset)"
+	echo " "
+	echo "8) remux mp4 to mkv"
+	echo "9) custom mp4"
 	echo " "
 	echo "MKVEXTRACT options"
-	echo "9) extract first subtitle"
-	echo "10) extract second subtitle"
-	echo "11) extract all subtitles"
+	echo "10) extract first subtitle"
+	echo "11) extract second subtitle"
+	echo "12) extract all subtitles"
 	echo " "
 	echo "VOBSUB2SRT options"
-	echo "12) OCR DVD idx/sub to SRT"
-	echo "13) OCR DVD idx/sub to SRT in Parallel"
+	echo "13) OCR DVD idx/sub to SRT"
+	echo "14) OCR DVD idx/sub to SRT in Parallel"
 	echo " "
 	echo "BDSUP2SUB options"
-	echo "14) Convert BR sup to idx/sub"
-	echo "15) Extract and OCR BluRay sup 1"
-	echo "16) Extract and OCR BluRay sub 2"
+	echo "15) Convert BR sup to idx/sub"
+	echo "16) Extract and OCR BluRay sup 1"
+	echo "17) Extract and OCR BluRay sup 2"
+	echo "18) Extract and OCR BluRay sup 1 forced and sup 2 regular"
 	echo ""
-	echo "17) FULL AUTO (experimental)"
+	echo
 	echo "enter numerical selection"
 
 
 	read n
 	case $n in
-	1) #Copy Video & Copy Audio1 (embed srt subtitle)"
+	1) # full auto
+		mode="full_auto"
+		;;
+	2) # custom mkv
+		mode="ffmpeg_custom"
+		;;
+	3) #Copy Video & Copy Audio1 (embed srt subtitle)"
 		vopts="-c:v copy"
 		amaps="-map 0:a:0"
 		aopts="-c:a copy"
 		mode="ffmpeg_preset"
 		;;
-	2) # Copy Video & Encode Audio1 as 5.1 EAC3
+	4) # Copy Video & Encode Audio1 as 5.1 EAC3
 		vopts="-c:v copy"
 		amaps="-map 0:a:0"
 		aopts="$surround_aopts"
 		mode="ffmpeg_preset"
 		;;
-	3) # 2-pass 10M x264 & Encode Audio1 as 5.1 EAC3 (BR medium preset)
+	5) # 2-pass 10M x264 & Encode Audio1 as 5.1 EAC3 (BR medium preset)
 		vopts="$br_vopts"
 		vprofile="$br_vprofile"
 		using_libx264=true;
@@ -182,7 +191,7 @@ main () {
 		aopts="$surround_aopts"
 		mode="ffmpeg_preset"
 		;;
-	4) # 2-pass 7M  x264 & Encode Audio1 as 5.1 EAC3 (BR low preset)
+	6) # 2-pass 7M  x264 & Encode Audio1 as 5.1 EAC3 (BR low preset)
 		vopts="-c:v libx264 -preset slow -b:v 7M"
 		vprofile="$br_vprofile"
 		using_libx264=true;
@@ -191,7 +200,7 @@ main () {
 		aopts="$surround_aopts"
 		mode="ffmpeg_preset"
 		;;
-	5) # 2-pass 3M  x264 deinterlace & Copy Audio1 (DVD medium)
+	7) # 2-pass 3M  x264 deinterlace & Copy Audio1 (DVD medium)
 		vopts="$dvd_vopts"
 		filters="-vf \"bwdif\""
 		vprofile="$dvd_profile"
@@ -201,7 +210,7 @@ main () {
 		aopts="-c:a copy"
 		mode="ffmpeg_preset"
 		;;
-	6) # remux mp4 to mkv
+	8) # remux mp4 to mkv
 		vopts="-c:v copy"
 		amaps="-map 0:a"
 		aopts="-c:a copy"
@@ -210,10 +219,8 @@ main () {
 		sopts="-c:s copy"
 		mode="ffmpeg_preset"
 		;;
-	7) # custom mkv
-		mode="ffmpeg_custom"
-		;;
-	8) # custom mp4
+
+	9) # custom mp4
 		container="mp4"
 		format="mp4"
 		sopts="-c:s mov_text"
@@ -221,40 +228,41 @@ main () {
 		;;
 
 	# "MKVEXTRACT options"
-	9)  # extract_first_sub
+	10)  # extract_first_sub
 		mode="mkvextract"
 		which_sub="1"
 		;;
-	10 ) # extract_second_sub
+	11 ) # extract_second_sub
 		mode="mkvextract"
 		which_sub="2"
 		;;
-	11 ) # extract_all_subs
+	12 ) # extract_all_subs
 		mode="mkvextract"
 		which_sub="all"
 		;;
 
 	# "VOBSUB2SRT options"
-	12) # OCR DVD subs to SRT
+	13) # OCR DVD subs to SRT
 		mode="vobsub2srt"
 		;;
-	13) # OCR DVD subs to SRT in parallel
+	14) # OCR DVD subs to SRT in parallel
 		mode="vobsub2srt"
 		parallel=true
 		;;
 	# "BDSUP2SUB options"
-	14) # convert BR sup to idx/sub
+	15) # convert BR sup to idx/sub
 		mode="bdsup2sub"
 		;;
-	15) # Extract and OCR BluRay sub 1
+	16) # Extract and OCR BluRay sub 1
 		mode="bd2srt1"
 		;;
-	16) # Extract and OCR BluRay sub 1
+	17) # Extract and OCR BluRay sub 1
 		mode="bd2srt2"
 		;;
-	17) # full auto
-		mode="full_auto"
+	18) # Extract and OCR BluRay sup 1 forced and sup 2 regular
+		mode="bd2srtforcedandreg"
 		;;
+
 
 	*)
 		echo "invalid option"
@@ -412,22 +420,30 @@ main () {
 		echo "What to do with subtitles?"
 		echo "Auto will select external srt if available"
 		echo "otherwise will grab first embedded sub"
-		select opt in "auto" "keep_first" "keep_second" "keep_all" "none"; do
+		select opt in "auto" "keep_first" "keep_second" "internal_forced_external_regular" "keep_all" "none"; do
 		case $opt in
 		auto)
 			autosubs=true
 			break;;
 		keep_all )
 			smaps="-map 0:s"
+			sopts="-c:s copy"
 			autosubs=false
 			break;;
 		keep_first )
 			smaps="-map 0:s:0"
+			sopts="-c:s copy"
 			autosubs=false
 			break;;
 		keep_second )
 			smaps="-map 0:s:1"
+			sopts="-c:s copy"
 			autosubs=false
+			break;;
+		internal_forced_external_regular )
+			smaps="-map 0:s:0 -map 1:s:0"
+			sopts="-c:s copy -disposition:s:0 +default+forced -metadata:s:s:0 Title=\"forced\" -metadata:s:s:0 language=eng -metadata:s:s:1 Title=\"English\" -metadata:s:s:1 language=eng"
+			autosubs="forced"
 			break;;
 		none )
 			smaps=""
@@ -565,14 +581,30 @@ run_ffmpeg () {
 	local ins=" -i \"$ffull\""
 
 	# if using autosubs, check if externals exist
-	if [ $autosubs == true ]; then
-		if [ -f "$fpath.srt" ]; then
-			ins="$ins -i \"$fpath.srt\""
+	if [ "$autosubs" == "forced" ]; then
+		ins="$ins -i \"$fpath.srt\""
+	elif [ $autosubs == true ]; then
+		if [ -f "$fpath.forced.srt" ]; then
+			ins="$ins -i \"$fpath.forced.srt\""
+			local foundforced=true
 			local smaps="-map 1:s"
 			local sopts="-c:s srt"
+			local sub_metadata="-disposition:s:0 +default+forced -metadata:s:s:0 Title=\"forced\" -metadata:s:s:0 language=eng"
+		fi
+		if [ -f "$fpath.srt" ]; then
+			ins="$ins -i \"$fpath.srt\""
+			if [ $foundforced == true ];then
+				smaps="$smaps -map 2:s"
+				sub_metadata="$sub_metadata -metadata:s:s:1 Title=\"English\" -metadata:s:s:1 language=eng"
+			else
+				local smaps="-map 1:s"
+				local sopts="-c:s srt"
+				local sub_metadata="-metadata:s:s:0 Title=\"English\" -metadata:s:s:0 language=eng"
+			fi
 		else
 			local smaps="-map 0:s:0"
 			local sopts="-c:s srt"
+			local sub_metadata=""
 		fi
 	fi
 
@@ -625,8 +657,9 @@ run_ffmpeg () {
 				echo " "
 			else
 				echo " "
-				echo "ffmpeg failure"
-				echo " "
+				echo "FFMPEG FAILURE"
+				echo "tried to run:"
+				echo "$command1"
 				exit 1
 			fi
 		else
@@ -639,8 +672,9 @@ run_ffmpeg () {
 				echo "finished pass 1"
 			else
 				echo " "
-				echo "ffmpeg failure"
-				echo " "
+				echo "FFMPEG FAILURE"
+				echo "tried to run:"
+				echo "$command1"
 				exit 1
 			fi
 			echo "starting pass 2 of 2"
@@ -654,8 +688,9 @@ run_ffmpeg () {
 				echo "finished pass 2"
 			else
 				echo " "
-				echo "ffmpeg failure"
-				echo " "
+				echo "FFMPEG FAILURE"
+				echo "tried to run:"
+				echo "$command2"
 				exit 1
 			fi
 		fi
@@ -1223,6 +1258,11 @@ process_one_file () {
 		run_bd2srt 1
 		;;
 	bd2srt2 )
+		run_bd2srt 2
+		;;
+	bd2srtforcedandreg )
+		run_bd2srt 1
+		mv "$fname.srt" "$fname.forced.srt"
 		run_bd2srt 2
 		;;
 	mkvextract )
