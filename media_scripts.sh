@@ -581,6 +581,7 @@ run_ffmpeg () {
 	local ins=" -i \"$ffull\""
 
 	# if using autosubs, check if externals exist
+	local foundforced=false
 	if [ "$autosubs" == "forced" ]; then
 		ins="$ins -i \"$fpath.srt\""
 	elif [ $autosubs == true ]; then
