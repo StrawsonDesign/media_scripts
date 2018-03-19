@@ -593,7 +593,7 @@ run_ffmpeg () {
 		fi
 		if [ -f "$fpath.srt" ]; then
 			ins="$ins -i \"$fpath.srt\""
-			if [ $foundforced == true ];then
+			if [ $foundforced == true ]; then
 				smaps="$smaps -map 2:s"
 				sub_metadata="$sub_metadata -metadata:s:s:1 Title=\"English\" -metadata:s:s:1 language=eng"
 			else
