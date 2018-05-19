@@ -54,6 +54,7 @@ preview=false
 
 ## ffmpeg flags, these are base values and are set up
 ## by user prompts or auto mode logic
+inflags=""
 vopts="-c:v copy"
 vprofile=""
 twopass=none
@@ -492,7 +493,7 @@ main () {
 		# ask run options when extracting just subtitles
 		echo " "
 		echo "preview command, or run now?"
-		select opt in "preview" "run_now" "run_verbose"; do
+		select opt in "preview" "run_now" "run_verbose" "run_genpts"; do
 		case $opt in
 		preview )
 			verbose_mode=""
@@ -505,6 +506,10 @@ main () {
 			verbose_mode="1"
 			verbosity="-stats"
 			vobsub_flags="$vobsub_flags --verbose"
+			break;;
+		run_genpts )
+			verbose_mode=""
+			inflags="-fflags +genpts"
 			break;;
 		*)
 			echo "invalid option"
@@ -578,7 +583,7 @@ run_ffmpeg () {
 		rm -f "$outfull"
 	fi
 
-	local ins=" -i \"$ffull\""
+	local ins=" $inflags -i \"$ffull\""
 
 	# if using autosubs, check if externals exist
 	local foundforced=false
