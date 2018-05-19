@@ -21,7 +21,8 @@ dependencies )
 	echo "installing dependencies"
 	apt install ffmpeg mkvtoolnix liblept5 libtesseract-data tesseract-ocr libtesseract-dev libtesseract3 openjdk-8-jre
 	dpkg -i BDSup2Sub.deb vobsub2srt-1.0pre7-11-g0ba6e25-Linux.deb
-* )
+	break;;
+*)
 	echo "invalid option"
 	esac
 done
