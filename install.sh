@@ -2,12 +2,6 @@
 
 
 
-if [ "$EUID" -ne 0 ]
-	then echo "Please run as root"
-	exit 1
-fi
-
-
 echo ""
 echo "Do you want to install just media_scripts.sh or its dependencies too?"
 #echo "note, mapping all english audio tracks also maps all english subtitles"
@@ -28,7 +22,8 @@ dependencies )
 done
 
 
-echo "installing media_scripts.sh"
-install -m 755 media_scripts.sh /usr/local/bin/media_scripts
+echo "installing media_scripts.sh to ~/bin/"
+mkdir -p ~/bin
+install -m 755 media_scripts.sh ~/bin/media_scripts
 
 echo "DONE!"

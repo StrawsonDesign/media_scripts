@@ -12,17 +12,23 @@ NOCOLOUR='\033[0m' # No Color
 
 ## common presets
 # 4k preset, based on amazon fire specs
-uhd_vopts="-c:v libx265 -preset medium -b:v 30000k -x265-params profile=main10:level=5.1:high-tier=0"
+uhd_vopts="-tag:v hvc1 -c:v libx265 -preset medium -b:v 25000k -x265-params profile=main10:level=5.1:high-tier=0"
 uhd_vprofile=""
-uhd_twopass="x265";
+uhd_twopass="x265"
+uhd_container="mp4"
+
 #bluray video
 br_vopts="-c:v libx264 -preset slow -b:v 10M"
 br_vprofile="-profile:v high -level 4.0"
 br_twopass="x264"
+br_container="mkv"
+
 # dvd video
 dvd_vopts="-c:v libx264 -preset slow -b:v 3M"
 dvd_vprofile="-profile:v baseline -level 3.0"
 dvd_twopass="x264"
+dvd_container="mkv"
+
 # audio presets
 surround_aopts="-filter:a loudnorm -c:a eac3 -b:a 640k -ar 48k"
 stereo_aopts="-filter:a loudnorm -c:a eac3 -b:a 192k -ar 48k"
@@ -127,7 +133,6 @@ main () {
 	echo $outdir
 
 
-	# ask container options
 	echo " "
 	echo "what do you want to do?"
 	echo " "
@@ -285,7 +290,8 @@ main () {
 		x265_2pass_4k_30mbit_5.1 )
 			vopts="$uhd_vopts"
 			vprofile="$uhd_vprofile"
-			twopass="$uhd_twopass";
+			twopass="$uhd_twopass"
+			container="$uhd_container"
 			break;;
 		x264_2pass_10M_L4.0 )
 			vopts="-c:v libx264 -preset slow -b:v 10000k"
@@ -478,7 +484,7 @@ main () {
 			lopts="-t 00:01:00.0"
 			break;;
 		sample60_middle )
-			lopts="-ss 00:10:00.0 -t 00:01:00.0"
+			lopts="-ss 00:05:00.0 -t 00:01:00.0"
 			break;;
 		run_now_no_chapters )
 			vmaps="$vmaps -map_chapters -1"
@@ -576,6 +582,10 @@ print_exec_time () {
 # called by process_one_file()
 ################################################################################
 run_ffmpeg () {
+
+	# add container to the end
+	outfull="$out_no_ext.$container"
+
 	# skip if file is already complete
 	if [ -f "$outfull" ]; then
 		echo "WARNING already exists: $outfull"
@@ -612,6 +622,13 @@ run_ffmpeg () {
 			local sopts="-c:s srt"
 			local sub_metadata=""
 		fi
+	fi
+
+	if [ "$container" == "mp4" ]; then
+		format="mp4"
+		sopts="-c:s mov_text"
+	else
+		format="matroska"
 	fi
 
 	#combine options into ffmpeg string
@@ -994,6 +1011,7 @@ run_full_auto () {
 	auto_subs=true
 	ocr_mode="none"
 	which_ocr=""
+	container="mkv"
 
 	## figure out what to do with video stream here
 	# copying video is ideal, but most restrictive conditions so check first
@@ -1005,7 +1023,7 @@ run_full_auto () {
 
 	# copy h265 4k video
 	elif [ "$interlaced" == "false" ] && [ "$orig_vcodec" == "hevc"   ] && \
-	     [ "$orig_width" == "3840"  ] && [ "$orig_vbr" -le "40000000" ]; then
+	     [ "$orig_width" == "3840"  ] && [ "$orig_vbr" -le "34000000" ]; then
 		vopts="-c:v copy"
 		vprofile=""
 		twopass="none"
@@ -1030,6 +1048,7 @@ run_full_auto () {
 			vopts="$uhd_vopts"
 			vprofile="$uhd_vprofile"
 			twopass="$uhd_twopass"
+			container="$uhd_container"
 		# something weird between BR and 4k
 		elif [ "$orig_width" -gt "1920" ]; then
 			echo "don't know how to handle video width $orig_width"
@@ -1048,6 +1067,7 @@ run_full_auto () {
 			vopts="$dvd_vopts"
 			vprofile="$dvd_vprofile"
 			twopass="$dvd_twopass"
+			container="$dvd_container"
 		else
 			echo "don't know how to handle video width $orig_width"
 			exit 1
@@ -1194,6 +1214,7 @@ run_full_auto () {
 ################################################################################
 process_one_file () {
 	## common processing of filename
+
 	ffull="$1"
 	if [ "$onefile" == false ]; then
 		# ffull is complete path from root
@@ -1219,7 +1240,7 @@ process_one_file () {
 		fi
 		# place in outdir with mkv extension
 		out_no_ext="$outdirfull/$fname"
-		outfull="$out_no_ext.$container"
+		#outfull="$out_no_ext.$container"
 	else
 		# strip extension, still includes subdir
 		fpath="${ffull%.*}"
@@ -1230,7 +1251,7 @@ process_one_file () {
 		outdirfull="$outdir"
 		out_no_ext="$outdir/$fname"
 		# place in outdir with mkv extension
-		outfull="$out_no_ext.$container"
+		#outfull="$out_no_ext.$container"
 		old_files_full="$old_files"
 	fi
 
