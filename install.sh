@@ -22,8 +22,10 @@ dependencies )
 done
 
 
-echo "installing media_scripts.sh to ~/bin/"
+echo "making link to media_scripts.sh  ~/bin/"
 mkdir -p ~/bin
-install -m 755 media_scripts.sh ~/bin/media_scripts
+#install -m 755 media_scripts.sh ~/bin/media_scripts
+#echo $(pwd)
+ln -sf $(pwd)/media_scripts.sh ~/bin/media_scripts 
 
 echo "DONE!"

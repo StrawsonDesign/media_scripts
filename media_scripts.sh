@@ -12,7 +12,7 @@ NOCOLOUR='\033[0m' # No Color
 
 ## common presets
 # 4k preset, based on amazon fire specs
-uhd_vopts="-tag:v hvc1 -c:v libx265 -preset medium -b:v 25000k -x265-params profile=main10:level=5.1:high-tier=0"
+uhd_vopts="-tag:v hvc1 -c:v libx265 -preset medium -b:v 23000k -x265-params profile=main10:level=5.1:high-tier=0"
 uhd_vprofile=""
 uhd_twopass="x265"
 uhd_container="mp4"
@@ -281,9 +281,9 @@ main () {
 		# ask video codec question
 		echo " "
 		echo "Which Video codec to use?"
-		select opt in "copy" "x265_2pass_4k_30mbit_5.1" "x264_2pass_10M_L4.0" "x264_2pass_7M_L4.0" "x264_2pass_4M_L4.0" "x264_2pass_3M_L3.0" "x264_2pass_1M_L3.0" "x264_rf18_L4.0" "x264_rf20_L4.0" "x265_rf21"; do
+		select opt in "copyy" "x265_2pass_4k_30mbit_5.1" "x264_2pass_10M_L4.0" "x264_2pass_7M_L4.0" "x264_2pass_4M_L4.0" "x264_2pass_3M_L3.0" "x264_2pass_1M_L3.0" "x264_rf18_L4.0" "x264_rf20_L4.0" "x265_rf21" "x265_2pass_1080_7mbit_4.0"; do
 		case $opt in
-		copy )
+		copyy )
 			vcopy="true"
 			vopts="-c:v copy"
 			break;;
@@ -337,6 +337,13 @@ main () {
 			vopts="-c:v libx265 -preset slow -x265-params profile=main10:crf=21:high-tier=1"
 			vprofile=""
 			break;;
+		x265_2pass_1080_7mbit_4.0 )
+			vopts="-tag:v hvc1 -c:v libx265 -preset medium -b:v 7000k -x265-params profile=main:level=4.0:high-tier=0"
+			vprofile=""
+			twopass="x265"
+			container="mp4"
+			break;;
+
 		*)
 			echo "invalid option"
 			esac
