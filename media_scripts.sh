@@ -12,10 +12,10 @@ NOCOLOUR='\033[0m' # No Color
 
 ## common presets
 # 4k preset, based on amazon fire specs
-uhd_vopts="-tag:v hvc1 -c:v libx265 -preset medium -b:v 23000k -x265-params profile=main10:level=5.1:high-tier=0"
+uhd_vopts="-tag:v hvc1 -c:v libx265 -preset medium -b:v 23000k -x265-params profile=main10:level=5.1:high-tier=0:asm=avx512"
 uhd_vprofile=""
 uhd_twopass="x265"
-uhd_container="mp4"
+uhd_container="mkv"
 
 #bluray video
 br_vopts="-c:v libx264 -preset slow -b:v 10M"
@@ -39,11 +39,11 @@ deinterlace_filter="-vf \"bwdif\""
 vmaps="-map 0:v:0"
 verbosity="-hide_banner -v fatal -stats"
 vobsub_flags="--lang en" # use english language for OCR
+global_metadata="-map_metadata -1" # wipe all input metadata as it often has errors
 sub_metadata=""
-# erase stupid video metadata set by scene groups
-video_metadata="-metadata:s:v:0 Title=\"Track 1\""
-audio_metadata="-metadata:s:a:0 Title=\"Track 1\""
-other_opts="-nostdin -max_muxing_queue_size 1000 -reserve_index_space 200k"
+video_metadata=""
+audio_metadata=""
+other_opts="-nostdin -max_muxing_queue_size 1024 -reserve_index_space 200k"
 # place to dump original files once complete
 old_files="$(readlink -f "old_files")"
 
@@ -71,7 +71,7 @@ smaps=""
 container="mkv"
 format="matroska"
 autosubs=true
-
+verbose_mode=false
 
 ################################################################################
 # function usage()
@@ -281,13 +281,13 @@ main () {
 		# ask video codec question
 		echo " "
 		echo "Which Video codec to use?"
-		select opt in "copyy" "x265_2pass_4k_30mbit_5.1" "x264_2pass_10M_L4.0" "x264_2pass_7M_L4.0" "x264_2pass_4M_L4.0" "x264_2pass_3M_L3.0" "x264_2pass_1M_L3.0" "x264_rf18_L4.0" "x264_rf20_L4.0" "x265_rf21" "x265_2pass_1080_7mbit_4.0"; do
+		select opt in "copy" "x265_2pass_4k_23mbit_5.1" "x264_2pass_10M_L4.0" "x264_2pass_7M_L4.0" "x264_2pass_4M_L4.0" "x264_2pass_3M_L3.0" "x264_2pass_1M_L3.0" "x264_rf18_L4.0" "x264_rf20_L4.0" "x265_rf21" "x265_2pass_1080_7mbit_4.0"; do
 		case $opt in
-		copyy )
+		copy )
 			vcopy="true"
 			vopts="-c:v copy"
 			break;;
-		x265_2pass_4k_30mbit_5.1 )
+		x265_2pass_4k_23mbit_5.1 )
 			vopts="$uhd_vopts"
 			vprofile="$uhd_vprofile"
 			twopass="$uhd_twopass"
@@ -341,7 +341,7 @@ main () {
 			vopts="-tag:v hvc1 -c:v libx265 -preset medium -b:v 7000k -x265-params profile=main:level=4.0:high-tier=0"
 			vprofile=""
 			twopass="x265"
-			container="mp4"
+			container="mkv"
 			break;;
 
 		*)
@@ -471,7 +471,7 @@ main () {
 		# ask run options
 		echo " "
 		echo "preview ffmpeg command, do a 1 minute sample, 60 second sample, or run everything now?"
-		select opt in "preview" "run_now" "run_verbose" "sample1" "sample10" "sample_60" "sample60_middle" "run_now_no_chapters"; do
+		select opt in "preview" "run_now" "run_verbose" "sample10" "sample60" "sample60_middle" "run_now_no_chapters"; do
 		case $opt in
 		preview )
 			preview=true
@@ -479,21 +479,23 @@ main () {
 		run_now )
 			break;;
 		run_verbose )
+            verbose_mode=true
 			verbosity="-stats"
 			break;;
-		sample1 )
-			lopts="-t 00:00:01.0"
-			break;;
 		sample10 )
+            verbose_mode=true
 			lopts="-t 00:00:10.0"
 			break;;
 		sample60 )
+            verbose_mode=true
 			lopts="-t 00:01:00.0"
 			break;;
 		sample60_middle )
+            verbose_mode=true
 			lopts="-ss 00:05:00.0 -t 00:01:00.0"
 			break;;
 		run_now_no_chapters )
+            verbose_mode=true
 			vmaps="$vmaps -map_chapters -1"
 			break;;
 		*)
@@ -506,22 +508,23 @@ main () {
 		# ask run options when extracting just subtitles
 		echo " "
 		echo "preview command, or run now?"
+        echo "genpts generates pts is DTS is present, run if you get errors"
 		select opt in "preview" "run_now" "run_verbose" "run_genpts"; do
 		case $opt in
 		preview )
-			verbose_mode=""
+			verbose_mode=false
 			preview=true
 			break;;
 		run_now )
-			verbose_mode=""
+			verbose_mode=false
 			break;;
 		run_verbose )
-			verbose_mode="1"
+            verbose_mode=true
 			verbosity="-stats"
 			vobsub_flags="$vobsub_flags --verbose"
 			break;;
 		run_genpts )
-			verbose_mode=""
+			verbose_mode=true
 			inflags="-fflags +genpts"
 			break;;
 		*)
@@ -640,7 +643,7 @@ run_ffmpeg () {
 
 	#combine options into ffmpeg string
 	local maps="$vmaps $amaps $smaps"
-	local metadata="-metadata title=\"\" $video_metadata $audio_metadata $sub_metadata"
+	local metadata="$global_metadata $video_metadata $audio_metadata $sub_metadata"
 
 	# construct ffmpeg command depending on mode
 	if [ "$twopass" == "x264" ]; then
@@ -678,7 +681,8 @@ run_ffmpeg () {
 		## single pass execution
 		if [ "$twopass" == "none" ]; then
 
-			if [ "$verbose_mode" == "1" ]; then
+			if [ "$verbose_mode" == true ]; then
+                echo "ffmpeg command to run:"
 				echo "$command1"
 				echo ""
 			fi
@@ -694,8 +698,12 @@ run_ffmpeg () {
 			fi
 		else
 			echo "starting pass 1 of 2"
-			if [ "$verbose_mode" == "1" ]; then
+			if [ "$verbose_mode" == true ]; then
+                echo "Pass 1 Command:"
 				echo "$command1"
+				echo ""
+                echo "Pass 2 Command:"
+			    echo "$command2"
 				echo ""
 			fi
 			if eval "$command1"; then
@@ -708,10 +716,7 @@ run_ffmpeg () {
 				exit 1
 			fi
 			echo "starting pass 2 of 2"
-			if [ "$verbose_mode" == "1" ]; then
-				echo "$command2"
-				echo ""
-			fi
+
 			if eval "$command2"; then
 				# finished, remove log file
 				rm "/tmp/$fname"*
