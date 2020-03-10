@@ -222,7 +222,7 @@ main () {
 		aopts="-c:a copy"
 		autosubs=false
 		smaps="-map 0:s\?"
-		sopts="-c:s copy"
+		sopts="-c:s srt"
 		mode="ffmpeg_preset"
 		;;
 
@@ -231,6 +231,7 @@ main () {
 		format="mp4"
 		sopts="-c:s mov_text"
 		mode="ffmpeg_custom"
+        other_opts="-nostdin"
 		;;
 
 	# "MKVEXTRACT options"
@@ -281,7 +282,7 @@ main () {
 		# ask video codec question
 		echo " "
 		echo "Which Video codec to use?"
-		select opt in "copy" "x265_2pass_4k_23mbit_5.1" "x264_2pass_10M_L4.0" "x264_2pass_7M_L4.0" "x264_2pass_4M_L4.0" "x264_2pass_3M_L3.0" "x264_2pass_1M_L3.0" "x264_rf18_L4.0" "x264_rf20_L4.0" "x265_rf21" "x265_2pass_1080_7mbit_4.0"; do
+		select opt in "copy" "x265_2pass_4k_23mbit_5.1" "x264_2pass_10M_L4.0" "x264_2pass_7M_L4.0" "x264_2pass_4M_L4.0" "x264_2pass_3M_L3.0" "x264_2pass_1M_L3.0" "x264_2pass_1_3M_L3.0" "x264_rf18_L4.0" "x264_rf20_L4.0" "x265_rf21" "x265_2pass_1080_7mbit_4.0"; do
 		case $opt in
 		copy )
 			vcopy="true"
@@ -319,6 +320,12 @@ main () {
 			break;;
 		x264_2pass_1M_L3.0 )
 			vopts="-c:v libx264 -preset slow -b:v 1000k"
+			vprofile="$dvd_vprofile"
+			using_libx264=true;
+			twopass="x264";
+			break;;
+        x264_2pass_1_3M_L3.0 )
+			vopts="-c:v libx264 -preset slow -b:v 1300k"
 			vprofile="$dvd_vprofile"
 			using_libx264=true;
 			twopass="x264";
@@ -386,7 +393,7 @@ main () {
 		echo "Which audio tracks to use?"
 		#echo "note, mapping all english audio tracks also maps all english subtitles"
 		#echo "and subtitle mode is forced to auto"
-		select opt in  "first" "second" "all_english" "all" "first+commentary" ; do
+		select opt in  "first" "second" "all_english" "all" "first+commentary" "none" ; do
 		case $opt in
 		all_english)
 			amaps="-map 0:a:m:language:eng"
@@ -405,6 +412,9 @@ main () {
 			amaps="-map 0:a:0 -map 0:a:1"
 			audio_metadata="-metadata:s:a:1 Title=\"English\" -metadata:s:a:1 Title=\"Commentary\" -metadata:s:a language=eng"
 			break;;
+        none )
+			amaps=""
+			break;;
 		*)
 			echo "invalid option"
 			esac
@@ -413,7 +423,7 @@ main () {
 		# ask audio codec question
 		echo " "
 		echo "Which audio codec to use?"
-		select opt in "eac3_5.1" "eac3_2.0" "copy"; do
+		select opt in "eac3_5.1" "eac3_2.0" "copy" "none"; do
 		case $opt in
 		eac3_5.1 )
 			aopts="$surround_aopts"
@@ -423,6 +433,9 @@ main () {
 			break;;
 		copy )
 			aopts="-c:a copy"
+			break;;
+        none )
+			aopts=""
 			break;;
 		*)
 			echo "invalid option"
